@@ -1,0 +1,12 @@
+node_modules/ 
+bin/ 
+obj/ 
+artifacts/ 
+exports/ 
+logs/ 
+.vs/
+
+*.user 
+*.suo 
+*.log 
+

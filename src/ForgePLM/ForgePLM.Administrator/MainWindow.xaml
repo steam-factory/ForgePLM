@@ -1,0 +1,86 @@
+﻿<Window x:Class="ForgePLM.Administrator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:ForgePLM.Administrator.Views"
+        Title="ForgePLM Administrator"
+        Height="720"
+        Width="1200"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="{StaticResource Brush.SidebarBackground}">
+            <DockPanel>
+                <TextBlock Text="ForgePLM"
+                           Foreground="White"
+                           FontSize="26"
+                           FontWeight="Bold"
+                           Margin="20,20,20,30"
+                           DockPanel.Dock="Top"/>
+
+                <StackPanel Margin="12">
+                    <Button x:Name="DashboardButton"
+                    Content="Dashboard"
+                    Height="44"
+                    Margin="0,0,0,10"
+                    Style="{StaticResource SidebarButtonStyle}"
+                    Click="DashboardButton_Click"/>
+
+                                <Button x:Name="CrmLiteButton"
+                    Content="CRM Lite"
+                    Height="44"
+                    Margin="0,0,0,10"
+                    Style="{StaticResource SidebarButtonStyle}"
+                    Click="CrmLiteButton_Click"/>
+
+                                <Button x:Name="EcoBuilderButton"
+                    Content="ECO Builder"
+                    Height="44"
+                    Margin="0,0,0,10"
+                    Style="{StaticResource SidebarButtonStyle}"
+                    Click="EcoBuilderButton_Click"/>
+
+                                <Button x:Name="PartNumberManagerButton"
+                    Content="Part Number Manager"
+                    Height="44"
+                    Margin="0,0,0,10"
+                    Style="{StaticResource SidebarButtonStyle}"
+                    Click="PartNumberManagerButton_Click"/>
+
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    Background="#F3F4F6"
+                    BorderBrush="#D1D5DB"
+                    BorderThickness="0,0,0,1">
+                <DockPanel Margin="20,0">
+                    <TextBlock x:Name="PageTitleTextBlock"
+                       Text="Dashboard"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource PageTitleTextStyle}"/>
+
+                    <TextBlock x:Name="ServiceStatusTextBlock"
+                               Text="Service: Unknown"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Right"
+                               DockPanel.Dock="Right"/>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Row="1" Background="White">
+                <ContentControl x:Name="MainContentControl"/>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

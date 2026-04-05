@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="ForgePLM.Administrator/ForgePLM.Administrator.csproj" Id="51fe2684-5ee4-402f-8d95-c4b924e2576e">
+    <BuildDependency Project="ForgePLM.Contracts/ForgePLM.Contracts.csproj" />
+    <BuildDependency Project="ForgePLM.Service/ForgePLM.Service.csproj" />
+  </Project>
+  <Project Path="ForgePLM.Contracts/ForgePLM.Contracts.csproj" Id="04aba646-7d1d-49d5-ab09-d5bd0fd111ad" />
+  <Project Path="ForgePLM.Data/ForgePLM.Data.csproj" Id="7cbfb989-e91d-4bcb-9e6d-e4d8e33bf1f5" />
+  <Project Path="ForgePLM.Service/ForgePLM.Service.csproj" Id="e30e7b27-7e43-45a7-9f33-8bfc41ea0382" />
+</Solution>
