@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace ForgePLM.Contracts.Parts;
 
-public record CreatePartRequest(
+public sealed record CreatePartRequest(
     string ProjectCode,
+    string EcoNumber,
     string CategoryCode,
-    string? Description
+    string Description
 );

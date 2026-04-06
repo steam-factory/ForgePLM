@@ -2,6 +2,8 @@ using ForgePLM.Contracts.Parts;
 using ForgePLM.Service.Data;
 using Microsoft.Data.SqlClient;
 using ForgePLM.Contracts.Customers;
+using ForgePLM.Contracts.Projects;
+using ForgePLM.Contracts.Eco;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,9 @@ builder.WebHost.UseUrls("http://127.0.0.1:5217");
 builder.Services.AddScoped<PartCategoryRepository>();
 builder.Services.AddScoped<PartRepository>();
 builder.Services.AddScoped<CustomerRepository>();
+builder.Services.AddScoped<ProjectRepository>();
+builder.Services.AddScoped<EcoRepository>();
+
 
 var app = builder.Build();
 
@@ -49,7 +54,7 @@ app.MapPost("/api/parts", async (
 {
     try
     {
-        var result = await repo.CreatePartAsync(request, ct);
+        var result = await repo.CreatePartAndInitialRevisionAsync(request, ct);
 
         return Results.Ok(new
         {
@@ -59,6 +64,15 @@ app.MapPost("/api/parts", async (
         });
     }
     catch (SqlException ex)
+    {
+        return Results.BadRequest(new
+        {
+            success = false,
+            error = ex.Message,
+            traceId = http.TraceIdentifier
+        });
+    }
+    catch (InvalidOperationException ex)
     {
         return Results.BadRequest(new
         {
@@ -114,5 +128,131 @@ app.MapPut("/api/customers/{customerId:int}", async (
         return Results.BadRequest(ex.Message);
     }
 });
+
+
+app.MapGet("/api/projects/by-customer/{customerId:int}", async (
+    int customerId,
+    ProjectRepository repo,
+    CancellationToken ct) =>
+{
+    var projects = await repo.GetByCustomerAsync(customerId, ct);
+    return Results.Ok(projects);
+});
+
+app.MapGet("/api/parts/by-eco/{ecoId:int}", async (
+    int ecoId,
+    PartRepository repo,
+    CancellationToken ct) =>
+{
+    var parts = await repo.GetEcoContentsAsync(ecoId, ct);
+    return Results.Ok(parts);
+});
+
+app.MapPost("/api/projects", async (
+    CreateProjectRequest request,
+    ProjectRepository repo,
+    CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.ProjectName))
+        return Results.BadRequest("Project Name is required.");
+
+    var created = await repo.CreateAsync(request, ct);
+    return Results.Ok(created);
+});
+
+app.MapPut("/api/projects/{projectId:int}", async (
+    int projectId,
+    UpdateProjectRequest request,
+    ProjectRepository repo,
+    CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.ProjectName))
+        return Results.BadRequest("Project Name is required.");
+
+    try
+    {
+        var updated = await repo.UpdateAsync(projectId, request, ct);
+        return Results.Ok(updated);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.NotFound(ex.Message);
+    }
+});
+
+app.MapGet("/api/eco/by-project/{projectId:int}", async (
+    int projectId,
+    EcoRepository repo,
+    CancellationToken ct) =>
+{
+    var ecos = await repo.GetByProjectAsync(projectId, ct);
+    return Results.Ok(ecos);
+});
+
+app.MapPost("/api/eco", async (
+    CreateEcoRequest request,
+    EcoRepository repo,
+    CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.EcoTitle))
+        return Results.BadRequest("ECO Title is required.");
+
+    var created = await repo.CreateAsync(request, ct);
+    return Results.Ok(created);
+});
+
+app.MapPut("/api/eco/{ecoId:int}", async (
+    int ecoId,
+    UpdateEcoRequest request,
+    EcoRepository repo,
+    CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.EcoTitle))
+        return Results.BadRequest("ECO Title is required.");
+
+    try
+    {
+        var updated = await repo.UpdateAsync(ecoId, request, ct);
+        return Results.Ok(updated);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.NotFound(ex.Message);
+    }
+});
+
+app.MapPost("/api/parts/create-under-eco", async (
+    ForgePLM.Contracts.Parts.CreatePartRequest request,
+    PartRepository repo,
+    CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.ProjectCode))
+        return Results.BadRequest("ProjectCode is required.");
+
+    if (string.IsNullOrWhiteSpace(request.EcoNumber))
+        return Results.BadRequest("EcoNumber is required.");
+
+    if (string.IsNullOrWhiteSpace(request.CategoryCode))
+        return Results.BadRequest("CategoryCode is required.");
+
+    if (string.IsNullOrWhiteSpace(request.Description))
+        return Results.BadRequest("Description is required.");
+
+    try
+    {
+        var created = await repo.CreatePartAndInitialRevisionAsync(request, ct);
+        return Results.Ok(created);
+    }
+    catch (SqlException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+});
+
+
 
 app.Run();

@@ -1,10 +1,13 @@
-﻿using System;
-using System.Net.Http;
-using System.Threading.Tasks;
-using System.Net.Http.Json;
-using ForgePLM.Contracts.Parts;
+﻿using ForgePLM.Contracts.Customers;
 using ForgePLM.Contracts.PartCategories;
-using ForgePLM.Contracts.Customers;
+using ForgePLM.Contracts.Parts;
+using ForgePLM.Contracts.Projects;
+using System;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
+using System.Windows;
+using ForgePLM.Contracts.Eco;
 
 namespace ForgePLM.Administrator.Services
 {
@@ -28,18 +31,6 @@ namespace ForgePLM.Administrator.Services
             return await response.Content.ReadAsStringAsync();
         }
 
-        public async Task<CreatePartResponse> CreatePartAsync(CreatePartRequest request)
-        {
-            var response = await _httpClient.PostAsJsonAsync("/api/parts", request);
-            response.EnsureSuccessStatusCode();
-
-            var payload = await response.Content.ReadFromJsonAsync<CreatePartEnvelope>();
-
-            if (payload?.Data is null)
-                throw new InvalidOperationException("Service returned no part data.");
-
-            return payload.Data;
-        }
 
         public async Task<IReadOnlyList<PartCategoryDto>> GetPartCategoriesAsync()
         {
@@ -69,6 +60,131 @@ namespace ForgePLM.Administrator.Services
             response.EnsureSuccessStatusCode();
         }
 
+        
+        //Project Helpers
+        public async Task<IReadOnlyList<ProjectDto>> GetProjectsByCustomerAsync(
+            int customerId,
+            CancellationToken cancellationToken = default)
+        {
+            var url = $"api/projects/by-customer/{customerId}";
+            var projects = await _httpClient.GetFromJsonAsync<List<ProjectDto>>(
+                $"api/projects/by-customer/{customerId}",
+                cancellationToken);
+            return projects ?? new List<ProjectDto>();
+        }
+
+        public async Task<ProjectDto> CreateProjectAsync(
+            CreateProjectRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "api/projects",
+                request,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var project = await response.Content.ReadFromJsonAsync<ProjectDto>(
+                cancellationToken: cancellationToken);
+
+            return project ?? throw new InvalidOperationException("Project API returned no body.");
+        }
+
+        public async Task<ProjectDto> UpdateProjectAsync(
+            int projectId,
+            UpdateProjectRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.PutAsJsonAsync(
+                $"/api/projects/{projectId}",
+                request,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var project = await response.Content.ReadFromJsonAsync<ProjectDto>(
+                cancellationToken: cancellationToken);
+
+            return project ?? throw new InvalidOperationException("Project API returned no body.");
+        }
+
+        public async Task<IReadOnlyList<EcoDto>> GetEcosByProjectAsync(
+    int projectId,
+    CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.GetFromJsonAsync<List<EcoDto>>(
+                $"/api/eco/by-project/{projectId}",
+                cancellationToken);
+
+            return response ?? new List<EcoDto>();
+        }
+
+        public async Task<EcoDto> CreateEcoAsync(
+            CreateEcoRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "/api/eco",
+                request,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var eco = await response.Content.ReadFromJsonAsync<EcoDto>(
+                cancellationToken: cancellationToken);
+
+            return eco ?? throw new InvalidOperationException("ECO API returned no body.");
+        }
+
+        public async Task<EcoDto> UpdateEcoAsync(
+            int ecoId,
+            UpdateEcoRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.PutAsJsonAsync(
+                $"/api/eco/{ecoId}",
+                request,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var eco = await response.Content.ReadFromJsonAsync<EcoDto>(
+                cancellationToken: cancellationToken);
+
+            return eco ?? throw new InvalidOperationException("ECO API returned no body.");
+        }
+
+        public async Task<PartRevisionItemDto> CreatePartUnderEcoAsync(
+            ForgePLM.Contracts.Parts.CreatePartRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "/api/parts",
+                request,
+                cancellationToken);
+
+            var raw = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException($"HTTP {(int)response.StatusCode}: {raw}");
+
+            var envelope = await response.Content.ReadFromJsonAsync<CreatePartEnvelope>(
+                cancellationToken: cancellationToken);
+
+            return envelope?.Data ?? throw new InvalidOperationException("Part API returned no body.");
+        }
+
+        public async Task<IReadOnlyList<PartRevisionItemDto>> GetEcoContentsAsync(
+            int ecoId,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.GetFromJsonAsync<List<PartRevisionItemDto>>(
+                $"/api/parts/by-eco/{ecoId}",
+                cancellationToken);
+
+            return response ?? new List<PartRevisionItemDto>();
+        }
+
 
         private sealed record CustomerEnvelope(
             bool Success,
@@ -90,9 +206,11 @@ namespace ForgePLM.Administrator.Services
 
         private sealed record CreatePartEnvelope(
             bool Success,
-            CreatePartResponse Data,
+            PartRevisionItemDto Data,
             string TraceId
         );
+
+
     }
 
 

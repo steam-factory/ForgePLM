@@ -13,6 +13,7 @@
         <SolidColorBrush x:Key="Brush.CardBorder" Color="#E5E7EB"/>
         <SolidColorBrush x:Key="Brush.TextPrimary" Color="#111827"/>
         <SolidColorBrush x:Key="Brush.TextSecondary" Color="#6B7280"/>
+        <SolidColorBrush x:Key="Brush.InputBackground" Color="#edeae1"/>
         <SolidColorBrush x:Key="Brush.Primary" Color="#2563EB"/>
         <SolidColorBrush x:Key="Brush.PrimaryHover" Color="#1D4ED8"/>
         <SolidColorBrush x:Key="Brush.Success" Color="#059669"/>
@@ -109,6 +110,46 @@
             </Setter>
         </Style>
 
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2A2F3A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3A3F4A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="8">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
+            <!-- Hover -->
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#343A46"/>
+                </Trigger>
+
+                <!-- Press -->
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1F242E"/>
+                </Trigger>
+
+                <!-- Disabled -->
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Inputs -->
         <Style TargetType="TextBox">
             <Setter Property="Padding" Value="10,8"/>
@@ -128,6 +169,19 @@
 
         <Style TargetType="CheckBox">
             <Setter Property="Margin" Value="0,6,0,12"/>
+        </Style>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        </Style>
+
+        <Style x:Key="FieldLabelTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
         </Style>
 
     </Application.Resources>

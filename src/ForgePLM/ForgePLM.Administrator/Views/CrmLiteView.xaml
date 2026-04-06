@@ -58,11 +58,15 @@
                         <StackPanel Grid.Column="2">
                            
                             <TextBlock Text="Customer Code"/>
-                            <TextBox x:Name="CustomerCodeTextBox"/>
+                            <TextBox x:Name="CustomerCodeTextBox"
+                             Background="{StaticResource Brush.InputBackground}"
+                             Foreground="{StaticResource Brush.TextPrimary}"
+                                IsReadOnly="True"/>                          
 
                             <TextBlock Text="Customer Name"/>
-                            <TextBox x:Name="CustomerNameTextBox"/>
-
+                            <TextBox x:Name="CustomerNameTextBox"
+                                 TextChanged="CustomerNameTextBox_TextChanged"/>
+                            
                             <TextBlock Text="Contact Name"/>
                             <TextBox x:Name="ContactNameTextBox"/>
 
@@ -104,15 +108,15 @@
 
             <!-- Projects Card -->
             <Border Grid.Column="2"
-                    Background="{StaticResource Brush.CardBackground}"
-                    BorderBrush="{StaticResource Brush.CardBorder}"
-                    BorderThickness="1"
-                    CornerRadius="14"
-                    Padding="20">
+        Background="{StaticResource Brush.CardBackground}"
+        BorderBrush="{StaticResource Brush.CardBorder}"
+        BorderThickness="1"
+        CornerRadius="14"
+        Padding="20">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="18"
-                                      ShadowDepth="2"
-                                      Opacity="0.12"/>
+                          ShadowDepth="2"
+                          Opacity="0.12"/>
                 </Border.Effect>
 
                 <Grid>
@@ -123,10 +127,13 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal">
-                        <TextBlock Text="Projects" Style="{StaticResource SectionTitleTextStyle}"/>
-                        <Button Content="New Project"
-                                Style="{StaticResource PrimaryButtonStyle}"
-                                Margin="16,0,0,0"/>
+                        <TextBlock Text="Projects"
+                       Style="{StaticResource SectionTitleTextStyle}"/>
+                        <Button x:Name="NewProjectButton"
+                            Content="New Project"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Margin="16,0,0,0"
+                            Click="NewProjectButton_Click"/>
                     </StackPanel>
 
                     <Grid Grid.Row="2">
@@ -136,24 +143,55 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <ListBox Grid.Column="0"/>
+                        <ListBox x:Name="ProjectsListBox"
+                            Grid.Column="0"
+                            SelectionChanged="ProjectsListBox_SelectionChanged">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="60"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="{Binding ProjectCode}"
+                               FontWeight="SemiBold"/>
+
+                                            <TextBlock Grid.Column="1"
+                               Text="{Binding ProjectName}"
+                               Margin="8,0,0,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                        </ListBox>
 
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Project Code"/>
-                            <TextBox x:Name="ProjectCodeTextBox"/>
+                            
+                            <TextBox x:Name="ProjectCodeTextBox"                                     
+                                 Background="{StaticResource Brush.InputBackground}"
+                                 Foreground="{StaticResource Brush.TextPrimary}"
+                             Margin="0,4,0,12"/>
 
                             <TextBlock Text="Project Name"/>
-                            <TextBox x:Name="ProjectNameTextBox"/>
+                            <TextBox x:Name="ProjectNameTextBox"
+                                        Margin="0,4,0,12"
+                                     TextChanged="ProjectNameTextBox_TextChanged"/>
 
                             <TextBlock Text="Customer"/>
-                            <ComboBox x:Name="ProjectCustomerComboBox"/>
+                            <TextBox x:Name="ProjectCustomerTextBox"
+                             Margin="0,4,0,12"
+                             IsReadOnly="True"/>
 
                             <CheckBox x:Name="ProjectIsActiveCheckBox"
-                                      Content="Active"/>
+                          Content="Active"
+                          Margin="0,4,0,16"/>
 
-                            <Button Content="Save Project"
-                                    Width="140"
-                                    Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button x:Name="SaveProjectButton"
+                                Content="Save Project"
+                                Width="140"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Click="SaveProjectButton_Click"/>
                         </StackPanel>
                     </Grid>
                 </Grid>

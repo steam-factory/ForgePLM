@@ -27,6 +27,9 @@ namespace ForgePLM.Administrator
             {
                 PageTitleTextBlock.Text = "ForgePLM";
             }
+
+
+            
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)

@@ -1,19 +1,325 @@
 ﻿<UserControl x:Class="ForgePLM.Administrator.Views.EcoBuilderView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Margin="20">
-        <Border Background="{StaticResource Brush.CardBackground}"
-                BorderBrush="{StaticResource Brush.CardBorder}"
-                BorderThickness="1"
-                CornerRadius="14"
-                Padding="24">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="18"
-                                  ShadowDepth="2"
-                                  Opacity="0.12"/>
-            </Border.Effect>
+    
+
+            <Grid Margin="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="1.1*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT COLUMN -->
+                <Border Grid.Column="0"
+                    Background="{StaticResource Brush.CardBackground}"
+                    BorderBrush="{StaticResource Brush.CardBorder}"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    Padding="16">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="18"
+                              ShadowDepth="2"
+                              Opacity="0.12"/>
+                    </Border.Effect>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Customer / Project selectors -->
+                        <Grid Grid.Row="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            
+                            <!--Customer Dropdown-->    
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Customer"
+                               Style="{StaticResource FieldLabelTextStyle}"/>                                
+                                <ComboBox x:Name="EcoCustomerComboBox"
+                                      Margin="0,4,0,0"
+                                      SelectionChanged="EcoCustomerComboBox_SelectionChanged">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="40"/>
+                                                <!-- Project Code -->
+                                                <ColumnDefinition Width="*"/>
+                                                <!-- Project Name -->
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="{Binding CustomerCode}"
+                                                   Grid.Column="0"
+                                                   FontWeight="SemiBold"/>
+
+                                            <TextBlock Text="{Binding CustomerName}"
+                                                   Grid.Column="1"
+                                                   Margin="8,0,0,0"/>
+                                        </Grid>
+
+                                    
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            
+                            <!-- Project Dropdown-->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Project"
+                               Style="{StaticResource FieldLabelTextStyle}"/>
+                                <ComboBox x:Name="EcoProjectComboBox"
+                                      Margin="0,4,0,0"
+                                      HorizontalContentAlignment="Stretch"
+                                      SelectionChanged="EcoProjectComboBox_SelectionChanged">
+                                <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="70"/>
+                                                    <!-- Project Code -->
+                                                    <ColumnDefinition Width="*"/>
+                                                    <!-- Project Name -->
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="{Binding ProjectCode}"
+                                               Grid.Column="0"
+                                               FontWeight="SemiBold"/>
+
+                                                <TextBlock Text="{Binding ProjectName}"
+                                                   Grid.Column="1"
+                                                   Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Project parts list -->
+                        <GroupBox Grid.Row="2"
+                      Header="Project Parts"
+                      Margin="0">
+                            <Grid Margin="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <ListBox x:Name="ProjectPartsListBox"
+                                    SelectionMode="Extended">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="110"/>
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="{Binding PartNumber}"
+                                               FontWeight="SemiBold"/>
+                                                <TextBlock Grid.Column="1"
+                                               Text="{Binding DescriptionCurrent}"
+                                               Margin="8,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <TextBlock Grid.Row="1"
+                               Margin="4,8,4,0"
+                               Opacity="0.7"
+                               Text="Select one or more project parts here to add them into the active ECO."/>
+                            </Grid>
+                        </GroupBox>
+                    </Grid>
+                </Border>
+
+                <!-- RIGHT COLUMN -->
+                <Border Grid.Column="2"
+            Background="{StaticResource Brush.CardBackground}"
+            BorderBrush="{StaticResource Brush.CardBorder}"
+            BorderThickness="1"
+            CornerRadius="14"
+            Padding="16">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="18"
+                              ShadowDepth="2"
+                              Opacity="0.12"/>
+                    </Border.Effect>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="30"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- ECO controls row -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="ECO"
+                               Style="{StaticResource FieldLabelTextStyle}"/>
+
+                        <ComboBox x:Name="EcoComboBox"
+                              Margin="0,4,0,0"
+                              SelectionChanged="EcoComboBox_SelectionChanged"
+                              HorizontalContentAlignment="Stretch">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Text="{Binding EcoNumber}"
+                           FontWeight="SemiBold"/>
+
+                                        <TextBlock Grid.Column="1"
+                           Text="{Binding EcoTitle}"
+                           Margin="8,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
 
 
-        </Border>
-    </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Rev Family"
+                           Style="{StaticResource FieldLabelTextStyle}"/>
+                        <TextBlock x:Name="RevisionFamilyTextBlock"
+                           Margin="0,6,0,0"
+                           FontSize="16"
+                           FontWeight="Bold"/>
+                    </StackPanel>
+
+                    <Button x:Name="NewEcoButton"
+                                Grid.Column="4"
+                                Content="New ECO"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                VerticalAlignment="Bottom"
+                                MinWidth="100"
+                                Click="NewEcoButton_Click"/>
+
+                    <Button x:Name="AddNewPartButton"
+                                Grid.Column="6"
+                                Content="Add New Part"
+                                Style="{StaticResource AccentButtonStyle}"
+                                VerticalAlignment="Bottom"
+                                MinWidth="100"
+                                Click="AddNewPartButton_Click"/>
+                </Grid>
+                <StackPanel Grid.Row="2"
+                    >
+                    <!-- Badge -->
+                    <Border x:Name="EcoStateBorder"
+                        Grid.Row="2"
+                        Margin="0,0,0,0"
+                        Padding="6,6"
+                        CornerRadius="6"
+                        HorizontalAlignment="Stretch">
+
+                        <TextBlock x:Name="EcoStateTextBlock"
+                           FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"/>
+                    </Border>
+
+                </StackPanel>
+
+                <!-- ECO contents -->
+                        <GroupBox Grid.Row="4"
+                      Header="ECO Contents">
+                            <Grid Margin="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                        <ListBox x:Name="EcoContentsListBox"
+                                SelectionMode="Extended">
+                            <ListBox.ItemTemplate >
+                                <DataTemplate>
+                                    <Grid Height="20">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="100"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Text="{Binding CompositeCode}"
+                                        FontWeight="SemiBold"/>
+
+                                        <TextBlock Grid.Column="1"
+                                       Text="{Binding Description}"
+                                       Margin="0,0,0,0"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                            </ListBox>
+
+                        <Grid Grid.Row="1"
+                              HorizontalAlignment="Stretch"
+                              Margin="0,8,0,0">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Button Grid.Column="0"
+                                Content="Add Selected Parts"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                HorizontalAlignment="Stretch"/>
+
+                            <Button Grid.Column="2"
+                                Content="Remove From ECO"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                HorizontalAlignment="Stretch"/>
+
+                        </Grid>
+                    </Grid>
+                        </GroupBox>
+
+                        <!-- ECO action row -->
+                        <StackPanel Grid.Row="6"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+                            <Button Content="Save ECO"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        MinWidth="120"
+                        Margin="0,0,8,0"/>
+                            <Button Content="Complete ECO"
+                        Style="{StaticResource AccentButtonStyle}"
+                        MinWidth="120"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+
 </UserControl>
