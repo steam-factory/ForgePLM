@@ -264,18 +264,25 @@
                                 SelectionMode="Extended">
                             <ListBox.ItemTemplate >
                                 <DataTemplate>
-                                    <Grid Height="20">
+                                    <Grid Height="9">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="100"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Text="{Binding CompositeCode}"
-                                        FontWeight="SemiBold"/>
+                                           FontWeight="SemiBold"
+                                           FontSize="12"
+                                           LineStackingStrategy="BlockLineHeight"
+                                           LineHeight="14"
+                                           VerticalAlignment="Center"/>
 
-                                        <TextBlock Grid.Column="1"
-                                       Text="{Binding Description}"
-                                       Margin="0,0,0,0"/>
+                                                                    <TextBlock Grid.Column="1"
+                                           Text="{Binding Description}"
+                                           FontSize="12"
+                                           LineStackingStrategy="BlockLineHeight"
+                                           LineHeight="14"
+                                           VerticalAlignment="Center"/>
                                     </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
