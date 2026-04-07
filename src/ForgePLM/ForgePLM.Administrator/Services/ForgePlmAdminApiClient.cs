@@ -185,6 +185,17 @@ namespace ForgePLM.Administrator.Services
             return response ?? new List<PartRevisionItemDto>();
         }
 
+        public async Task<IReadOnlyList<ProjectPartCurrentDto>> GetProjectPartsCurrentAsync(
+            int projectId,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.GetFromJsonAsync<List<ProjectPartCurrentDto>>(
+                $"/api/parts/by-project/{projectId}",
+                cancellationToken);
+
+            return response ?? new List<ProjectPartCurrentDto>();
+        }
+
 
         private sealed record CustomerEnvelope(
             bool Success,

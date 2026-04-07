@@ -77,6 +77,68 @@ public partial class PartRepository
 
         return results;
     }
+    public async Task<List<ProjectPartCurrentDto>> GetProjectPartsCurrentAsync(int projectId, CancellationToken ct)
+    {
+        const string sql = """
+        SELECT
+            p.part_id,
+            p.category_code,
+            p.part_number_int,
+            p.part_number,
+            r.revision_id,
+            r.revision_code,
+            r.revision_family,
+            r.revision_state,
+            e.eco_id,
+            e.eco_number,
+            e.eco_state,
+            COALESCE(r.part_description, p.description_current, '') AS description
+        FROM dbo.part_numbers p
+        INNER JOIN dbo.revisions r
+            ON r.revision_id = p.current_revision_id
+        INNER JOIN dbo.eco e
+            ON e.eco_id = r.eco_id
+        WHERE p.project_id = @project_id
+        ORDER BY p.category_code, p.part_number_int;
+        """;
+
+        var results = new List<ProjectPartCurrentDto>();
+
+        await using var connection = CreateConnection();
+        await connection.OpenAsync(ct);
+
+        await using var command = new SqlCommand(sql, connection);
+        command.Parameters.AddWithValue("@project_id", projectId);
+
+        await using var reader = await command.ExecuteReaderAsync(ct);
+
+        while (await reader.ReadAsync(ct))
+        {
+            var categoryCode = reader.GetString(1);
+            var partNumberInt = reader.GetInt32(2);
+            var revisionCode = reader.GetInt32(5);
+
+            results.Add(new ProjectPartCurrentDto(
+                PartId: reader.GetInt32(0),
+                CategoryCode: categoryCode,
+                PartNumberInt: partNumberInt,
+                PartNumber: reader.GetString(3),
+                CurrentRevisionId: reader.GetInt32(4),
+                RevisionCode: revisionCode,
+                RevisionFamily: reader.GetInt32(6),
+                RevisionState: reader.GetString(7),
+                EcoId: reader.GetInt32(8),
+                EcoNumber: reader.GetString(9),
+                EcoState: reader.GetString(10),
+                Description: reader.GetString(11),
+                CompositeCode: $"{categoryCode}-{partNumberInt:0000000}-{revisionCode}",
+                CanSelect: false,
+                AvailabilityReason: "No active ECO selected."
+            ));
+        }
+
+        return results;
+    }
 
     public async Task<PartRevisionItemDto> CreatePartAndInitialRevisionAsync(
         CreatePartRequest request,
@@ -206,4 +268,7 @@ public partial class PartRepository
             throw;
         }
     }
+
+    
+
 }

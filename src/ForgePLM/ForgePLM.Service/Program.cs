@@ -189,6 +189,15 @@ app.MapGet("/api/eco/by-project/{projectId:int}", async (
     return Results.Ok(ecos);
 });
 
+app.MapGet("/api/parts/by-project/{projectId:int}", async (
+    int projectId,
+    PartRepository repo,
+    CancellationToken ct) =>
+{
+    var parts = await repo.GetProjectPartsCurrentAsync(projectId, ct);
+    return Results.Ok(parts);
+});
+
 app.MapPost("/api/eco", async (
     CreateEcoRequest request,
     EcoRepository repo,

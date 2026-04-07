@@ -50,6 +50,9 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Newtonsoft.Json.13.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="SolidWorks.Interop.sldworks">
       <HintPath>C:\Program Files\SOLIDWORKS Corp\SOLIDWORKS\api\redist\SolidWorks.Interop.sldworks.dll</HintPath>
       <EmbedInteropTypes>True</EmbedInteropTypes>
@@ -74,22 +77,29 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HelloTaskPaneControl.cs">
+    <Compile Include="Controls\ForgePlmTaskPaneControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="HelloTaskPaneControl.Designer.cs">
-      <DependentUpon>HelloTaskPaneControl.cs</DependentUpon>
-    </Compile>
+    <Compile Include="Models\EcoDto.cs" />
+    <Compile Include="Models\PartDto.cs" />
+    <Compile Include="Models\RevisionDto.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Services\FileService.cs" />
+    <Compile Include="Services\ForgePlmApiClient.cs" />
+    <Compile Include="Services\SolidWorksService.cs" />
     <Compile Include="SwAddin.cs" />
+    <Compile Include="Utils\PropertyMapper.cs" />
+    <Compile Include="ViewModels\MainViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="HelloTaskPaneControl.resx">
-      <DependentUpon>HelloTaskPaneControl.cs</DependentUpon>
+    <EmbeddedResource Include="Controls\ForgePlmTaskPaneControl.resx">
+      <DependentUpon>ForgePlmTaskPaneControl.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="ForgePLM_Control_Rules_V1.md" />
+    <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

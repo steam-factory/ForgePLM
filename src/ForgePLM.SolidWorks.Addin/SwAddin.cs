@@ -14,7 +14,7 @@ namespace ForgePLM.SolidWorks.Addin
         private SldWorks _swApp;
         private int _addinCookie;
         private TaskpaneView _taskPaneView;
-        private HelloTaskPaneControl _taskPaneControl;
+        private ForgePlmTaskPaneControl _taskPaneControl;
 
         public bool ConnectToSW(object ThisSW, int Cookie)
         {
@@ -24,6 +24,9 @@ namespace ForgePLM.SolidWorks.Addin
             _swApp.SetAddinCallbackInfo2(0, this, _addinCookie);
 
             CreateTaskPane();
+            HookSolidWorksEvents();
+
+            _taskPaneControl?.OnActiveDocumentChanged();
 
             _swApp.SendMsgToUser2(
                 "ForgePLM add-in connected.",
@@ -37,6 +40,8 @@ namespace ForgePLM.SolidWorks.Addin
         {
             try
             {
+                UnhookSolidWorksEvents();
+
                 if (_taskPaneView != null)
                 {
                     _taskPaneView.DeleteView();
@@ -61,12 +66,11 @@ namespace ForgePLM.SolidWorks.Addin
             _taskPaneView = _swApp.CreateTaskpaneView2(iconPath, "ForgePLM");
 
             _taskPaneView.AddControl(
-                "ForgePLM.SolidWorks.Addin.HelloTaskPaneControl",
+                "ForgePLM.SolidWorks.Addin.ForgePlmTaskPaneControl",
                 "");
 
             object controlObject = _taskPaneView.GetControl();
-
-            _taskPaneControl = controlObject as HelloTaskPaneControl;
+            _taskPaneControl = controlObject as ForgePlmTaskPaneControl;
 
             if (_taskPaneControl != null)
             {
@@ -79,6 +83,43 @@ namespace ForgePLM.SolidWorks.Addin
                     (int)swMessageBoxIcon_e.swMbStop,
                     (int)swMessageBoxBtn_e.swMbOk);
             }
+        }
+
+        private void HookSolidWorksEvents()
+        {
+            if (_swApp == null)
+                return;
+
+            _swApp.ActiveDocChangeNotify += OnActiveDocChangeNotify;
+        }
+
+        private void UnhookSolidWorksEvents()
+        {
+            if (_swApp == null)
+                return;
+
+            try
+            {
+                _swApp.ActiveDocChangeNotify -= OnActiveDocChangeNotify;
+            }
+            catch
+            {
+                // Ignore unhook errors for now
+            }
+        }
+
+        private int OnActiveDocChangeNotify()
+        {
+            try
+            {
+                _taskPaneControl?.OnActiveDocumentChanged();
+            }
+            catch
+            {
+                // Keep SolidWorks stable even if our UI update fails
+            }
+
+            return 0;
         }
 
         [ComRegisterFunction]

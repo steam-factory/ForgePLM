@@ -21,6 +21,8 @@ namespace ForgePLM.Administrator.Views
         private readonly ObservableCollection<EcoDto> _ecos = new();
         private readonly List<PartCategoryDto> _partCategories = new();
         private readonly ObservableCollection<PartRevisionItemDto> _ecoContents = new();
+        private readonly ObservableCollection<ProjectPartCurrentDto> _projectParts = new();
+
         private EcoDto? _selectedEco;
 
         private CustomerDto? _selectedCustomer;
@@ -38,6 +40,8 @@ namespace ForgePLM.Administrator.Views
             NewEcoButton.IsEnabled = false;
             AddNewPartButton.IsEnabled = false;
             EcoContentsListBox.ItemsSource = _ecoContents;
+            ProjectPartsListBox.ItemsSource = _projectParts;
+            ProjectPartsListBox.IsEnabled = false;
 
             Loaded += EcoBuilderView_Loaded;
         }
@@ -164,6 +168,7 @@ namespace ForgePLM.Administrator.Views
             NewEcoButton.IsEnabled = _selectedProject is not null;
 
             await LoadEcosForSelectedProjectAsync();
+            await LoadProjectPartsAsync();
         }
 
         private void SelectEco(int ecoId)
@@ -243,6 +248,8 @@ namespace ForgePLM.Administrator.Views
         private async void EcoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             _selectedEco = EcoComboBox.SelectedItem as EcoDto;
+
+            ProjectPartsListBox.IsEnabled = _selectedEco is not null;
             AddNewPartButton.IsEnabled = _selectedEco is not null;
 
             if (_selectedEco is null)
@@ -271,13 +278,101 @@ namespace ForgePLM.Administrator.Views
                 var items = await _apiClient.GetEcoContentsAsync(_selectedEco.EcoId);
 
                 foreach (var item in items)
-                {
                     _ecoContents.Add(item);
-                }
+
+                RefreshProjectPartAvailability();
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "Load ECO Contents Error");
+            }
+        }
+
+        private async Task LoadProjectPartsAsync()
+        {
+            _projectParts.Clear();
+
+            if (_selectedProject is null)
+                return;
+
+            try
+            {
+                var parts = await _apiClient.GetProjectPartsCurrentAsync(_selectedProject.ProjectId);
+
+                foreach (var part in parts)
+                    _projectParts.Add(part);
+
+                RefreshProjectPartAvailability();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Load Project Parts Error");
+            }
+        }
+
+        private void RefreshProjectPartAvailability()
+        {
+            if (_projectParts.Count == 0)
+                return;
+
+            var ecoContentsPartIds = _ecoContents
+                .Select(x => x.PartId)
+                .ToHashSet();
+
+            var updated = _projectParts
+                .Select(part =>
+                {
+                    bool canSelect = false;
+                    string? reason = null;
+
+                    if (_selectedEco is null)
+                    {
+                        canSelect = false;
+                        reason = "No active ECO selected.";
+                    }
+                    else if (ecoContentsPartIds.Contains(part.PartId))
+                    {
+                        canSelect = false;
+                        reason = "Already in selected ECO.";
+                    }
+                    else if (!string.Equals(part.RevisionState, "Released", StringComparison.OrdinalIgnoreCase))
+                    {
+                        canSelect = false;
+                        reason = "Current revision is not Released.";
+                    }
+                    else if (part.RevisionFamily > _selectedEco.ReleaseLevel)
+                    {
+                        canSelect = false;
+                        reason = "Revision family exceeds selected ECO family.";
+                    }
+                    else
+                    {
+                        canSelect = true;
+                        reason = null;
+                    }
+
+                    return part with
+                    {
+                        CanSelect = canSelect,
+                        AvailabilityReason = reason
+                    };
+                })
+                .ToList();
+
+            _projectParts.Clear();
+
+            foreach (var item in updated)
+                _projectParts.Add(item);
+        }
+
+        private void ProjectPartsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            foreach (var added in e.AddedItems.OfType<ProjectPartCurrentDto>().ToList())
+            {
+                if (!added.CanSelect)
+                {
+                    ProjectPartsListBox.SelectedItems.Remove(added);
+                }
             }
         }
         private async void AddNewPartButton_Click(object sender, RoutedEventArgs e)
@@ -332,6 +427,7 @@ namespace ForgePLM.Administrator.Views
                 var created = await _apiClient.CreatePartUnderEcoAsync(request);
 
                 await LoadEcoContentsAsync();
+                await LoadProjectPartsAsync();
             }
             catch (Exception ex)
             {
