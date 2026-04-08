@@ -1,6 +1,7 @@
 ﻿using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 
+
 public class SolidWorksService
 {
     private readonly SldWorks _swApp;

@@ -11,12 +11,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
+    <ProjectReference Include="..\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
+    <ProjectReference Include="..\ForgePLM.Data\ForgePLM.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
-    <ProjectReference Include="..\ForgePLM.Data\ForgePLM.Data.csproj" />
+    <Folder Include="Controllers\" />
   </ItemGroup>
 
 </Project>

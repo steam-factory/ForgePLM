@@ -1,12 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ForgePLM.SolidWorks.Addin.Models
+﻿namespace ForgePLM.SolidWorks.Addin.Models
 {
-    internal class EcoDto
+    public class EcoDto
     {
+        public int EcoId { get; set; }
+        public string EcoNumber { get; set; }
+        public string EcoState { get; set; }
+        public int ReleaseLevel { get; set; }
+
+        public string DisplayName
+        {
+            get
+            {
+                if (!string.IsNullOrWhiteSpace(EcoState))
+                    return $"{EcoNumber} [{EcoState}]";
+                return EcoNumber ?? string.Empty;
+            }
+        }
     }
 }

@@ -1,13 +1,15 @@
-﻿
-using System;
-using SolidWorks.Interop.sldworks;
-using SolidWorks.Interop.swconst;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
-
+using ForgePLM.Contracts.Dtos;
+using ForgePLM.SolidWorks.Addin.Services;
+using SolidWorks.Interop.sldworks;
+using SolidWorks.Interop.swconst;
 
 namespace ForgePLM.SolidWorks.Addin
 {
@@ -17,6 +19,26 @@ namespace ForgePLM.SolidWorks.Addin
     public class ForgePlmTaskPaneControl : UserControl
     {
         private SldWorks _swApp;
+
+        private const string PropGuid = "PLM_GUID";
+        private const string PropPartId = "PLM_PartId";
+        private const string PropRevisionId = "PLM_RevisionId";
+        private const string PropPartNumber = "PLM_PartNumber";
+        private const string PropRevision = "PLM_Revision";
+        private const string PropDescription = "PLM_Description";
+        private const string PropEco = "PLM_ECO";
+        private const string PropProject = "PLM_Project";
+
+        private readonly ForgePlmApiClient _api = new ForgePlmApiClient();
+
+        private bool _isLoadingContext;
+
+        private List<CustomerDto> _customers = new List<CustomerDto>();
+        private List<ProjectDto> _projects = new List<ProjectDto>();
+        private List<EcoDto> _ecos = new List<EcoDto>();
+        private List<EcoRowViewModel> _allEcoRows = new List<EcoRowViewModel>();
+
+        private BindingList<EcoRowViewModel> _ecoRows = new BindingList<EcoRowViewModel>();
 
         // Layout
         private TableLayoutPanel _rootLayout;
@@ -38,9 +60,7 @@ namespace ForgePLM.SolidWorks.Addin
         private Label _lblCategory;
         private Label _lblPartSort;
         private Label _lblRevSort;
-
         private DataGridView _gridEcoContents;
-        private BindingList<EcoRowViewModel> _ecoRows = new BindingList<EcoRowViewModel>();
 
         // Active file
         private GroupBox _activeFileGroup;
@@ -48,22 +68,17 @@ namespace ForgePLM.SolidWorks.Addin
         private Label _lblActiveFileValue;
         private Label _lblActiveStateValue;
         private Label _lblActivePartValue;
+        private Label _lblActiveProjectValue;
         private Label _lblActiveRevValue;
         private Label _lblActiveNoteValue;
-
-        private const string PropGuid = "PLM_GUID";
-        private const string PropPartId = "PLM_PartId";
-        private const string PropRevisionId = "PLM_RevisionId";
-        private const string PropPartNumber = "PLM_PartNumber";
-        private const string PropRevision = "PLM_Revision";
-        private const string PropDescription = "PLM_Description";
-        private const string PropEco = "PLM_ECO";
 
         public ForgePlmTaskPaneControl()
         {
             BuildUi();
             WireEvents();
-            SeedMockData();
+
+            Load += async (_, __) => await LoadInitialContextAsync();
+
             RefreshActiveFilePanel(null);
         }
 
@@ -89,10 +104,11 @@ namespace ForgePLM.SolidWorks.Addin
                 RowCount = 3,
                 Padding = new Padding(8)
             };
+
             _rootLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            _rootLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));      // context
-            _rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // eco contents
-            _rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 210)); // active file
+            _rootLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            _rootLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            _rootLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 210));
 
             BuildContextSection();
             BuildEcoSection();
@@ -171,6 +187,7 @@ namespace ForgePLM.SolidWorks.Addin
                 RowCount = 2,
                 Padding = new Padding(8)
             };
+
             _ecoLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             _ecoLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             _ecoLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -242,7 +259,8 @@ namespace ForgePLM.SolidWorks.Addin
                 ReadOnly = true,
                 RowHeadersVisible = false,
                 BackgroundColor = SystemColors.Window,
-                BorderStyle = BorderStyle.FixedSingle
+                BorderStyle = BorderStyle.FixedSingle,
+                ShowCellToolTips = true
             };
 
             BuildEcoGridColumns();
@@ -256,7 +274,6 @@ namespace ForgePLM.SolidWorks.Addin
         private void BuildEcoGridColumns()
         {
             _gridEcoContents.Columns.Clear();
-            _gridEcoContents.ShowCellToolTips = true;
 
             _gridEcoContents.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -310,68 +327,6 @@ namespace ForgePLM.SolidWorks.Addin
             });
         }
 
-        private void GridEcoContents_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
-        {
-            if (e.RowIndex < 0 || e.ColumnIndex < 0)
-                return;
-
-            var row = _gridEcoContents.Rows[e.RowIndex].DataBoundItem as EcoRowViewModel;
-            if (row == null)
-                return;
-
-            string columnName = _gridEcoContents.Columns[e.ColumnIndex].Name;
-
-            switch (columnName)
-            {
-                case "Open":
-                    e.ToolTipText = $"Open {row.DisplayPartNumber} in SolidWorks";
-                    break;
-
-                case "New":                
-
-                    {
-                        var state = GetMockActiveFileState(row);
-
-                        if (state != ActiveFileState.Derived)
-                        {
-                            e.ToolTipText = "New not available (file is already managed)";
-                        }
-                        else
-                        {
-                            e.ToolTipText = $"Create new file for {row.DisplayPartNumber}";
-                        }
-                        break;
-                    }
-
-                case "Assign":
-                    {
-                        var state = GetMockActiveFileState(row);
-
-                        if (state != ActiveFileState.Derived)
-                        {
-                            e.ToolTipText = "Assign not available (file is already managed)";
-                        }
-                        else
-                        {
-                            e.ToolTipText = $"Assign active file to {row.DisplayPartNumber}";
-                        }
-                        break;
-                    }
-
-                case "Part":
-                    e.ToolTipText = $"Part Number: {row.DisplayPartNumber}";
-                    break;
-
-                case "Rev":
-                    e.ToolTipText = $"Revision: {row.RevisionCode}";
-                    break;
-
-                case "Description":
-                    e.ToolTipText = row.Description;
-                    break;
-            }
-        }
-
         private void BuildActiveFileSection()
         {
             _activeFileGroup = new GroupBox
@@ -384,7 +339,7 @@ namespace ForgePLM.SolidWorks.Addin
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 5,
+                RowCount = 6,
                 Padding = new Padding(8)
             };
 
@@ -401,6 +356,7 @@ namespace ForgePLM.SolidWorks.Addin
             _lblActiveStateValue = new Label { AutoSize = true };
             _lblActivePartValue = new Label { AutoSize = true };
             _lblActiveRevValue = new Label { AutoSize = true };
+            _lblActiveProjectValue = new Label { AutoSize = true };
             _lblActiveNoteValue = new Label
             {
                 AutoSize = true,
@@ -420,6 +376,9 @@ namespace ForgePLM.SolidWorks.Addin
             _activeFileLayout.Controls.Add(new Label { Text = "Rev", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 3);
             _activeFileLayout.Controls.Add(_lblActiveRevValue, 1, 3);
 
+            _activeFileLayout.Controls.Add(new Label { Text = "Project", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 4);
+            _activeFileLayout.Controls.Add(_lblActiveProjectValue, 1, 4);
+
             _activeFileLayout.Controls.Add(new Label { Text = "Note", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 4);
             _activeFileLayout.Controls.Add(_lblActiveNoteValue, 1, 4);
 
@@ -428,97 +387,285 @@ namespace ForgePLM.SolidWorks.Addin
 
         private void WireEvents()
         {
+            _cmbCustomer.SelectedIndexChanged += async (_, __) =>
+            {
+                if (_isLoadingContext) return;
+                await LoadProjectsForSelectedCustomerAsync();
+            };
+
+            _cmbProject.SelectedIndexChanged += async (_, __) =>
+            {
+                if (_isLoadingContext) return;
+                await LoadEcosForSelectedProjectAsync();
+            };
+
+            _cmbEco.SelectedIndexChanged += async (_, __) =>
+            {
+                if (_isLoadingContext) return;
+                await LoadEcoContentsForSelectedEcoAsync();
+            };
+
             _cmbCategoryFilter.SelectedIndexChanged += (_, __) => ApplyGridViewState();
             _cmbPartSort.SelectedIndexChanged += (_, __) => ApplyGridViewState();
             _cmbRevSort.SelectedIndexChanged += (_, __) => ApplyGridViewState();
-            _cmbEco.SelectedIndexChanged += (_, __) => ReloadEcoContentsForSelectedEco();
 
             _gridEcoContents.CellContentClick += GridEcoContents_CellContentClick;
             _gridEcoContents.CellFormatting += GridEcoContents_CellFormatting;
-            _gridEcoContents.SelectionChanged += (_, __) => EvaluateActiveDocument();
             _gridEcoContents.CellToolTipTextNeeded += GridEcoContents_CellToolTipTextNeeded;
+            _gridEcoContents.SelectionChanged += (_, __) => EvaluateActiveDocument();
         }
 
-        private void SeedMockData()
+        private async Task LoadInitialContextAsync()
         {
-            _cmbCustomer.Items.AddRange(new object[] { "Acme Corp", "Globex", "Initech" });
-            _cmbProject.Items.AddRange(new object[] { "Project Falcon", "Project Atlas" });
-            _cmbEco.Items.AddRange(new object[] { "ECO-000123", "ECO-000124" });
-
-            _cmbCategoryFilter.Items.AddRange(new object[] { "All", "CM", "HW", "EL" });
-            _cmbPartSort.Items.AddRange(new object[] { "Ascending", "Descending" });
-            _cmbRevSort.Items.AddRange(new object[] { "Ascending", "Descending" });
-
-            _cmbCustomer.SelectedIndex = 0;
-            _cmbProject.SelectedIndex = 0;
-            _cmbEco.SelectedIndex = 0;
-            _cmbCategoryFilter.SelectedIndex = 0;
-            _cmbPartSort.SelectedIndex = 0;
-            _cmbRevSort.SelectedIndex = 0;
-
-            _ecoRows = new BindingList<EcoRowViewModel>
+            try
             {
-                new EcoRowViewModel { PartId = 510, RevisionId = 1001, CategoryCode = "CM", PartNumberInt = 510, RevisionCode = "101", Description = "Enclosure Cover", EcoNumber = "ECO-000123", FilePath = @"C:\ForgePLM\Dev\CM-0000510.sldprt" },
-                new EcoRowViewModel { PartId = 511, RevisionId = 1002, CategoryCode = "CM", PartNumberInt = 511, RevisionCode = "101", Description = "Enclosure Base", EcoNumber = "ECO-000123", FilePath = @"C:\ForgePLM\Dev\CM-0000511.sldprt" }
-             };
+                MessageBox.Show("LoadInitialContextAsync fired.", "ForgePLM");
+                _isLoadingContext = true;
 
-            _gridEcoContents.DataSource = _ecoRows;
+                _cmbCustomer.Items.Clear();
+                _cmbProject.Items.Clear();
+                _cmbEco.Items.Clear();
+
+                _customers = await _api.GetCustomersAsync();
+
+                foreach (var customer in _customers)
+                {
+                    _cmbCustomer.Items.Add($"{customer.CustomerCode} - {customer.CustomerName}");
+                }
+
+                MessageBox.Show($"Customers loaded: {_customers.Count}", "ForgePLM");
+
+                if (_cmbCustomer.Items.Count > 0)
+                {
+                    _cmbCustomer.SelectedIndex = 0;
+                }
+
+                _cmbCategoryFilter.Items.Clear();
+                _cmbCategoryFilter.Items.Add("All");
+                _cmbCategoryFilter.SelectedIndex = 0;
+
+                _cmbPartSort.Items.Clear();
+                _cmbPartSort.Items.AddRange(new object[] { "Ascending", "Descending" });
+                _cmbPartSort.SelectedIndex = 0;
+
+                _cmbRevSort.Items.Clear();
+                _cmbRevSort.Items.AddRange(new object[] { "Ascending", "Descending" });
+                _cmbRevSort.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                string message = ex.Message;
+                Exception inner = ex.InnerException;
+
+                while (inner != null)
+                {
+                    message += "\n\nInner: " + inner.Message;
+                    inner = inner.InnerException;
+                }
+
+                MessageBox.Show($"Failed to load customers:\n{message}", "ForgePLM");
+            }
+            finally
+            {
+                _isLoadingContext = false;
+            }
         }
 
-        private void AssignSelectedRow(EcoRowViewModel row)
+        private async Task LoadProjectsForSelectedCustomerAsync()
         {
-            var model = GetActiveModel();
-            if (model == null)
+            try
             {
-                MessageBox.Show("No active SolidWorks document.", "ForgePLM");
-                return;
+                _isLoadingContext = true;
+
+                _cmbProject.Items.Clear();
+                _cmbEco.Items.Clear();
+
+                _allEcoRows = new List<EcoRowViewModel>();
+                _ecoRows = new BindingList<EcoRowViewModel>(_allEcoRows);
+                _gridEcoContents.DataSource = _ecoRows;
+
+                var customer = GetSelectedCustomer();
+                if (customer == null)
+                    return;
+
+                _projects = await _api.GetProjectsByCustomerAsync(customer.CustomerId);
+
+                foreach (var project in _projects)
+                {
+                    _cmbProject.Items.Add($"{project.ProjectCode} - {project.ProjectName}");
+                }
+
+                if (_cmbProject.Items.Count > 0)
+                {
+                    _cmbProject.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load projects:\n{ex.Message}", "ForgePLM");
+            }
+            finally
+            {
+                _isLoadingContext = false;
+            }
+        }
+
+        private async Task LoadEcosForSelectedProjectAsync()
+        {
+            try
+            {
+                _isLoadingContext = true;
+
+                _cmbEco.Items.Clear();
+
+                _allEcoRows = new List<EcoRowViewModel>();
+                _ecoRows = new BindingList<EcoRowViewModel>(_allEcoRows);
+                _gridEcoContents.DataSource = _ecoRows;
+
+                var project = GetSelectedProject();
+                if (project == null)
+                    return;
+
+                _ecos = await _api.GetEcosByProjectAsync(project.ProjectId);
+
+                foreach (var eco in _ecos)
+                {
+                    _cmbEco.Items.Add($"{eco.EcoNumber} [{eco.EcoState}]");
+                }
+
+                if (_cmbEco.Items.Count > 0)
+                {
+                    _cmbEco.SelectedIndex = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load ECOs:\n{ex.Message}", "ForgePLM");
+            }
+            finally
+            {
+                _isLoadingContext = false;
+            }
+        }
+
+        private async Task LoadEcoContentsForSelectedEcoAsync()
+        {
+            try
+            {
+                _isLoadingContext = true;
+                var project = GetSelectedProject();
+
+                string projectDisplay = project == null
+                    ? string.Empty
+                    : $"{project.ProjectCode} - {project.ProjectName}";
+
+                var eco = GetSelectedEco();
+                if (eco == null)
+                {
+                    _allEcoRows = new List<EcoRowViewModel>();
+                    _ecoRows = new BindingList<EcoRowViewModel>(_allEcoRows);
+                    _gridEcoContents.DataSource = _ecoRows;
+                    return;
+                }
+
+                var revisions = await _api.GetEcoContentsAsync(eco.EcoId);
+                var rows = new List<EcoRowViewModel>();
+
+                foreach (var rev in revisions)
+                {
+                    rows.Add(new EcoRowViewModel
+                    {
+                        PartId = rev.PartId,
+                        RevisionId = rev.RevisionId,
+                        CategoryCode = rev.CategoryCode,
+                        PartNumberInt = rev.PartNumberInt,
+                        RevisionCode = rev.RevisionCode,
+                        Description = rev.Description,
+                        EcoNumber = rev.EcoNumber,
+                        FilePath = rev.FilePath,
+                        ProjectDisplay = projectDisplay // 🔥 add this
+                    });
+                }
+
+                _allEcoRows = rows;
+                _ecoRows = new BindingList<EcoRowViewModel>(_allEcoRows);
+                _gridEcoContents.DataSource = _ecoRows;
+
+                ApplyCategoryFilterOptions();
+                ApplyGridViewState();
+                EvaluateActiveDocument();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load ECO contents:\n{ex.Message}", "ForgePLM");
+            }
+            finally
+            {
+                _isLoadingContext = false;
+            }
+        }
+
+        private CustomerDto GetSelectedCustomer()
+        {
+            int index = _cmbCustomer.SelectedIndex;
+            if (index < 0 || index >= _customers.Count)
+                return null;
+
+            return _customers[index];
+        }
+
+        private ProjectDto GetSelectedProject()
+        {
+            int index = _cmbProject.SelectedIndex;
+            if (index < 0 || index >= _projects.Count)
+                return null;
+
+            return _projects[index];
+        }
+
+        private EcoDto GetSelectedEco()
+        {
+            int index = _cmbEco.SelectedIndex;
+            if (index < 0 || index >= _ecos.Count)
+                return null;
+
+            return _ecos[index];
+        }
+
+        private void ApplyCategoryFilterOptions()
+        {
+            string selected = _cmbCategoryFilter.SelectedItem?.ToString();
+
+            var categories = new List<string> { "All" };
+
+            foreach (var row in _allEcoRows)
+            {
+                if (!string.IsNullOrWhiteSpace(row.CategoryCode) && !categories.Contains(row.CategoryCode))
+                {
+                    categories.Add(row.CategoryCode);
+                }
             }
 
-            var eval = EvaluateActiveFile(row);
+            _cmbCategoryFilter.Items.Clear();
 
-            if (eval.State != ActiveFileState.Derived)
+            foreach (var category in categories)
             {
-                MessageBox.Show("Assign is only available for a Derived file.", "ForgePLM");
-                return;
+                _cmbCategoryFilter.Items.Add(category);
             }
 
-            var propMgr = model.Extension.CustomPropertyManager[""];
-
-            EnsureProperty(propMgr, PropGuid, Guid.NewGuid().ToString().ToUpperInvariant());
-            EnsureProperty(propMgr, PropPartId, row.PartId.ToString());
-            EnsureProperty(propMgr, PropRevisionId, row.RevisionId.ToString());
-            EnsureProperty(propMgr, PropPartNumber, row.DisplayPartNumber);
-            EnsureProperty(propMgr, PropRevision, row.RevisionCode);
-            EnsureProperty(propMgr, PropDescription, row.Description ?? string.Empty);
-            EnsureProperty(propMgr, PropEco, row.EcoNumber ?? string.Empty);
-
-            model.ForceRebuild3(false);
-            model.Save3((int)swSaveAsOptions_e.swSaveAsOptions_Silent, 0, 0);
-
-            EvaluateActiveDocument();
+            if (!string.IsNullOrWhiteSpace(selected) && _cmbCategoryFilter.Items.Contains(selected))
+            {
+                _cmbCategoryFilter.SelectedItem = selected;
+            }
+            else if (_cmbCategoryFilter.Items.Count > 0)
+            {
+                _cmbCategoryFilter.SelectedIndex = 0;
+            }
         }
 
-        private void ReloadEcoContentsForSelectedEco()
-        {
-            // TODO:
-            // Replace with API call by selected ECO.
-            // For now, re-apply current filters/sorts to existing mock data.
-            ApplyGridViewState();
-        }
-
-        private ActiveFileState GetActiveFileState(EcoRowViewModel selectedRow)
-        {
-            return EvaluateActiveFile(selectedRow).State;
-        }
         private void ApplyGridViewState()
         {
-            var allRows = new List<EcoRowViewModel>
-            {
-                new EcoRowViewModel { CategoryCode = "CM", PartNumberInt = 510, RevisionCode = "101", Description = "Enclosure Cover" },
-                new EcoRowViewModel { CategoryCode = "CM", PartNumberInt = 511, RevisionCode = "101", Description = "Enclosure Base" },
-                new EcoRowViewModel { CategoryCode = "HW", PartNumberInt = 124, RevisionCode = "201", Description = "Shoulder Bolt, 1/4-20 x 1.00" },
-                new EcoRowViewModel { CategoryCode = "EL", PartNumberInt = 88, RevisionCode = "102", Description = "Power Entry Module" }
-            };
+            var filtered = new List<EcoRowViewModel>(_allEcoRows);
 
             string category = _cmbCategoryFilter.SelectedItem?.ToString() ?? "All";
             string partSort = _cmbPartSort.SelectedItem?.ToString() ?? "Ascending";
@@ -526,10 +673,10 @@ namespace ForgePLM.SolidWorks.Addin
 
             if (category != "All")
             {
-                allRows = allRows.FindAll(x => x.CategoryCode == category);
+                filtered = filtered.FindAll(x => x.CategoryCode == category);
             }
 
-            allRows.Sort((a, b) =>
+            filtered.Sort((a, b) =>
             {
                 int partCompare = a.PartNumberInt.CompareTo(b.PartNumberInt);
                 if (partSort == "Descending")
@@ -545,7 +692,7 @@ namespace ForgePLM.SolidWorks.Addin
                 return revCompare;
             });
 
-            _ecoRows = new BindingList<EcoRowViewModel>(allRows);
+            _ecoRows = new BindingList<EcoRowViewModel>(filtered);
             _gridEcoContents.DataSource = _ecoRows;
 
             EvaluateActiveDocument();
@@ -582,6 +729,79 @@ namespace ForgePLM.SolidWorks.Addin
             }
         }
 
+        private void GridEcoContents_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+                return;
+
+            string columnName = _gridEcoContents.Columns[e.ColumnIndex].Name;
+
+            if (columnName == "Open")
+            {
+                e.Value = "↗";
+                e.FormattingApplied = true;
+            }
+            else if (columnName == "New")
+            {
+                e.Value = "+";
+                e.FormattingApplied = true;
+            }
+            else if (columnName == "Assign")
+            {
+                e.Value = "✓";
+                e.FormattingApplied = true;
+            }
+        }
+
+        private void GridEcoContents_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
+        {
+            if (e.RowIndex < 0 || e.ColumnIndex < 0)
+                return;
+
+            var row = _gridEcoContents.Rows[e.RowIndex].DataBoundItem as EcoRowViewModel;
+            if (row == null)
+                return;
+
+            string columnName = _gridEcoContents.Columns[e.ColumnIndex].Name;
+
+            switch (columnName)
+            {
+                case "Open":
+                    e.ToolTipText = $"Open {row.DisplayPartNumber} in SolidWorks";
+                    break;
+
+                case "New":
+                    {
+                        var state = GetActiveFileState(row);
+                        e.ToolTipText = state == ActiveFileState.Derived
+                            ? $"Create new file for {row.DisplayPartNumber}"
+                            : "New not available (file is already managed)";
+                        break;
+                    }
+
+                case "Assign":
+                    {
+                        var state = GetActiveFileState(row);
+                        e.ToolTipText = state == ActiveFileState.Derived
+                            ? $"Assign active file to {row.DisplayPartNumber}"
+                            : "Assign not available unless the active file is Derived";
+                        break;
+                    }
+
+                case "Part":
+                    e.ToolTipText = $"Part Number: {row.DisplayPartNumber}";
+                    break;
+
+                case "Rev":
+                    e.ToolTipText = $"Revision: {row.RevisionCode}";
+                    break;
+
+                case "Description":
+                    e.ToolTipText = row.Description;
+                    break;
+            }
+        }
+
         private void OpenSelectedRow(EcoRowViewModel row)
         {
             if (_swApp == null)
@@ -611,34 +831,157 @@ namespace ForgePLM.SolidWorks.Addin
         {
             MessageBox.Show($"Create new file for {row.DisplayPartNumber} coming next.", "ForgePLM");
         }
-
-        private void GridEcoContents_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        private string BuildDevelopmentVaultPath(EcoRowViewModel row, string extensionWithDot)
         {
-            if (e.RowIndex < 0)
+            string basePath = @"e:\SteamFactory_DEV\projects";
+            string projectDisplay = row.ProjectDisplay ?? string.Empty;
+            string fileName = row.DisplayPartNumber + extensionWithDot;
+
+            return System.IO.Path.Combine(basePath, projectDisplay, "development", fileName);
+        }
+
+        private string GetActiveDocumentExtension(ModelDoc2 model)
+        {
+            if (model == null)
+                return string.Empty;
+
+            string path = model.GetPathName();
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                return System.IO.Path.GetExtension(path);
+            }
+
+            switch ((swDocumentTypes_e)model.GetType())
+            {
+                case swDocumentTypes_e.swDocPART:
+                    return ".sldprt";
+
+                case swDocumentTypes_e.swDocASSEMBLY:
+                    return ".sldasm";
+
+                case swDocumentTypes_e.swDocDRAWING:
+                    return ".slddrw";
+
+                default:
+                    return string.Empty;
+            }
+        }
+        private void ShowSaveToVaultDialog(EcoRowViewModel row)
+        {
+            var model = GetActiveModel();
+            if (model == null)
+            {
+                MessageBox.Show("No active SolidWorks document.", "ForgePLM");
                 return;
+            }
 
-            string columnName = _gridEcoContents.Columns[e.ColumnIndex].Name;
+            string extension = GetActiveDocumentExtension(model);
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                MessageBox.Show("Could not determine the active document extension.", "ForgePLM");
+                return;
+            }
 
-            if (columnName == "Open")
+            string fullTargetPath = BuildDevelopmentVaultPath(row, extension);
+
+            using (var dialog = new SaveToVaultDialog(
+                row.ProjectDisplay ?? string.Empty,
+                row.DisplayPartNumber,
+                extension,
+                fullTargetPath))
             {
-                e.Value = "↗";
-                e.FormattingApplied = true;
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                    return;
             }
-            else if (columnName == "New")
+
+            try
             {
-                e.Value = "+";
-                e.FormattingApplied = true;
+                string targetDirectory = Path.GetDirectoryName(fullTargetPath);
+
+                if (!string.IsNullOrWhiteSpace(targetDirectory))
+                {
+                    Directory.CreateDirectory(targetDirectory);
+                }
             }
-            else if (columnName == "Assign")
+            catch (Exception ex)
             {
-                e.Value = "✓";
-                e.FormattingApplied = true;
+                MessageBox.Show($"Failed while creating directory:\n{ex}", "ForgePLM");
+                return;
             }
+
+            try
+            {
+                int errors = 0;
+                int warnings = 0;
+
+                bool success = model.Extension.SaveAs(
+                    fullTargetPath,
+                    (int)swSaveAsVersion_e.swSaveAsCurrentVersion,
+                    (int)swSaveAsOptions_e.swSaveAsOptions_Silent,
+                    null,
+                    ref errors,
+                    ref warnings);
+
+                if (!success)
+                {
+                    MessageBox.Show(
+                        $"Save failed.\nErrors: {errors}\nWarnings: {warnings}",
+                        "ForgePLM");
+                    return;
+                }
+
+                if (warnings != 0)
+                {
+                    MessageBox.Show(
+                        $"Saved with warnings.\nWarnings: {warnings}",
+                        "ForgePLM");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed during SaveAs:\n{ex}", "ForgePLM");
+                return;
+            }
+        }
+        private void AssignSelectedRow(EcoRowViewModel row)
+        {
+            var model = GetActiveModel();
+            if (model == null)
+            {
+                MessageBox.Show("No active SolidWorks document.", "ForgePLM");
+                return;
+            }
+
+            var eval = EvaluateActiveFile(row);
+
+            if (eval.State != ActiveFileState.Derived)
+            {
+                MessageBox.Show("Assign is only available for a Derived file.", "ForgePLM");
+                return;
+            }
+
+            var propMgr = model.Extension.CustomPropertyManager[""];
+
+            EnsureProperty(propMgr, PropGuid, Guid.NewGuid().ToString().ToUpperInvariant());
+            EnsureProperty(propMgr, PropPartId, row.PartId.ToString());
+            EnsureProperty(propMgr, PropRevisionId, row.RevisionId.ToString());
+            EnsureProperty(propMgr, PropPartNumber, row.DisplayPartNumber);
+            EnsureProperty(propMgr, PropRevision, row.RevisionCode);
+            EnsureProperty(propMgr, PropDescription, row.Description ?? string.Empty);
+            EnsureProperty(propMgr, PropEco, row.EcoNumber ?? string.Empty);
+            EnsureProperty(propMgr, PropProject, row.ProjectDisplay ?? string.Empty);
+
+            model.ForceRebuild3(false);
+            model.Save3((int)swSaveAsOptions_e.swSaveAsOptions_Silent, 0, 0);
+
+            EvaluateActiveDocument();
+            ShowSaveToVaultDialog(row);
         }
 
         private void EvaluateActiveDocument()
         {
             EcoRowViewModel selectedRow = null;
+
             if (_gridEcoContents.CurrentRow?.DataBoundItem is EcoRowViewModel current)
             {
                 selectedRow = current;
@@ -652,6 +995,7 @@ namespace ForgePLM.SolidWorks.Addin
                 StateText = eval.State.ToString(),
                 PartNumber = eval.PartNumber,
                 Revision = eval.Revision,
+                Project = eval.Project, // 🔥 NEW
                 Note = eval.Note
             });
         }
@@ -672,6 +1016,7 @@ namespace ForgePLM.SolidWorks.Addin
             _lblActiveStateValue.Text = status.StateText ?? "—";
             _lblActivePartValue.Text = status.PartNumber ?? "—";
             _lblActiveRevValue.Text = status.Revision ?? "—";
+            _lblActiveProjectValue.Text = status.Project ?? "—";
             _lblActiveNoteValue.Text = status.Note ?? string.Empty;
         }
 
@@ -693,25 +1038,9 @@ namespace ForgePLM.SolidWorks.Addin
             }
         }
 
-        private ActiveFileState GetMockActiveFileState(EcoRowViewModel selectedRow)
+        private ActiveFileState GetActiveFileState(EcoRowViewModel selectedRow)
         {
-            // TEMP MOCK LOGIC:
-            // You’ll replace this with real GUID/property inspection.
-            // This is only to make the skeleton feel alive.
-
-            if (selectedRow == null)
-                return ActiveFileState.None;
-
-            if (selectedRow.CategoryCode == "CM")
-                return ActiveFileState.Derived;
-
-            if (selectedRow.CategoryCode == "HW")
-                return ActiveFileState.Managed;
-
-            if (selectedRow.CategoryCode == "EL")
-                return ActiveFileState.Conflict;
-
-            return ActiveFileState.None;
+            return EvaluateActiveFile(selectedRow).State;
         }
 
         private class ActiveFileEvaluation
@@ -724,6 +1053,7 @@ namespace ForgePLM.SolidWorks.Addin
             public int? PartId { get; set; }
             public int? RevisionId { get; set; }
             public string Note { get; set; }
+            public string Project { get; set; }
         }
 
         private ActiveFileEvaluation EvaluateActiveFile(EcoRowViewModel selectedRow)
@@ -742,12 +1072,19 @@ namespace ForgePLM.SolidWorks.Addin
                 };
             }
 
-            string fileName = model.GetTitle() ?? "—";
+            string fullPath = model.GetPathName();
+            string fileName = string.IsNullOrWhiteSpace(fullPath)
+                ? (model.GetTitle() ?? "—")
+                : Path.GetFileName(fullPath);
+
             string guid = GetCustomProperty(model, PropGuid);
             string partIdText = GetCustomProperty(model, PropPartId);
             string revisionIdText = GetCustomProperty(model, PropRevisionId);
             string partNumber = GetCustomProperty(model, PropPartNumber);
             string revision = GetCustomProperty(model, PropRevision);
+            string project = GetCustomProperty(model, PropProject);
+
+
 
             int parsedPartId;
             int? partId = int.TryParse(partIdText, out parsedPartId) ? parsedPartId : (int?)null;
@@ -766,6 +1103,7 @@ namespace ForgePLM.SolidWorks.Addin
                     GuidValue = guid,
                     PartId = partId,
                     RevisionId = revisionId,
+                    Project = string.IsNullOrWhiteSpace(project) ? "—" : project,
                     Note = "No ForgePLM GUID detected."
                 };
             }
@@ -781,6 +1119,7 @@ namespace ForgePLM.SolidWorks.Addin
                     GuidValue = guid,
                     PartId = partId,
                     RevisionId = revisionId,
+                    Project = string.IsNullOrWhiteSpace(project) ? "—" : project,
                     Note = "Active file does not match selected ECO item."
                 };
             }
@@ -794,6 +1133,7 @@ namespace ForgePLM.SolidWorks.Addin
                 GuidValue = guid,
                 PartId = partId,
                 RevisionId = revisionId,
+                Project = string.IsNullOrWhiteSpace(project) ? "—" : project,
                 Note = "ForgePLM-managed file."
             };
         }
@@ -830,14 +1170,7 @@ namespace ForgePLM.SolidWorks.Addin
                 value ?? string.Empty,
                 (int)swCustomPropertyAddOption_e.swCustomPropertyReplaceValue);
         }
-
-
-
-
-
     }
-
-
 
     public enum ActiveFileState
     {
@@ -849,14 +1182,20 @@ namespace ForgePLM.SolidWorks.Addin
 
     public class EcoRowViewModel
     {
+
         public int PartId { get; set; }
         public int RevisionId { get; set; }
+
         public string CategoryCode { get; set; }
         public int PartNumberInt { get; set; }
         public string RevisionCode { get; set; }
         public string Description { get; set; }
         public string EcoNumber { get; set; }
+
         public string FilePath { get; set; }
+
+        // 🔥 NEW
+        public string ProjectDisplay { get; set; }  // "PRIOG-0001 - PrioVision"
 
         public string DisplayPartNumber
         {
@@ -864,16 +1203,17 @@ namespace ForgePLM.SolidWorks.Addin
         }
     }
 
-
     public class ActiveFileStatus
     {
         public string FileName { get; set; }
         public string StateText { get; set; }
+
         public string PartNumber { get; set; }
         public string Revision { get; set; }
+
+        // 🔥 NEW
+        public string Project { get; set; }
+
         public string Note { get; set; }
     }
-
-
 }
-

@@ -1,28 +1,59 @@
-﻿using ForgePLM.SolidWorks.Addin.Models;
+﻿using ForgePLM.Contracts.Dtos;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
-public class ForgePlmApiClient
+namespace ForgePLM.SolidWorks.Addin.Services
 {
-    private readonly HttpClient _http;
-
-    public ForgePlmApiClient()
+    public class ForgePlmApiClient
     {
-        _http = new HttpClient
+        private readonly HttpClient _http;
+
+        public ForgePlmApiClient()
         {
-            BaseAddress = new Uri("https://your-api")
-        };
-    }
+            _http = new HttpClient
+            {
+                BaseAddress = new Uri("http://localhost:5269")
+            };
+        }
 
-    public async Task<List<RevisionDto>> GetEcoContents(int ecoId)
-    {
-        var response = await _http.GetAsync($"/api/eco/{ecoId}/contents");
-        response.EnsureSuccessStatusCode();
+        public async Task<List<CustomerDto>> GetCustomersAsync()
+        {
 
-        var json = await response.Content.ReadAsStringAsync();
-        return JsonConvert.DeserializeObject<List<RevisionDto>>(json);
+            var response = await _http.GetAsync("/api/customers");
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<CustomerDto>>(json) ?? new List<CustomerDto>();
+        }
+
+        public async Task<List<ProjectDto>> GetProjectsByCustomerAsync(int customerId)
+        {
+            var response = await _http.GetAsync($"/api/customers/{customerId}/projects");
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<ProjectDto>>(json) ?? new List<ProjectDto>();
+        }
+
+        public async Task<List<EcoDto>> GetEcosByProjectAsync(int projectId)
+        {
+            var response = await _http.GetAsync($"/api/projects/{projectId}/ecos");
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<EcoDto>>(json) ?? new List<EcoDto>();
+        }
+
+        public async Task<List<RevisionDto>> GetEcoContentsAsync(int ecoId)
+        {
+            var response = await _http.GetAsync($"/api/ecos/{ecoId}/contents");
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<RevisionDto>>(json) ?? new List<RevisionDto>();
+        }
     }
 }
