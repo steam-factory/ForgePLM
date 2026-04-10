@@ -5,6 +5,8 @@ artifacts/
 exports/ 
 logs/ 
 .vs/
+# Local deployment output
+run/
 
 *.user 
 *.suo 
