@@ -8,6 +8,7 @@
 	</PropertyGroup>
 	
 
+
 	<ItemGroup>
 		<ProjectReference Include="..\ForgePLM.Runtime\ForgePLM.Runtime.csproj" />
 	</ItemGroup>
