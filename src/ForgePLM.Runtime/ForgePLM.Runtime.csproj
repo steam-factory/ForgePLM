@@ -18,4 +18,8 @@
 		</PackageReference>
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
 	</ItemGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<PublishDir>..\..\run\ForgePLM.Runtime.Host\</PublishDir>
+	</PropertyGroup>
 </Project>
