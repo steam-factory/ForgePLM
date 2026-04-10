@@ -28,10 +28,10 @@ namespace ForgePLM.SolidWorks.Addin
 
             _taskPaneControl?.OnActiveDocumentChanged();
 
-            _swApp.SendMsgToUser2(
-                "ForgePLM add-in connected.",
-                (int)swMessageBoxIcon_e.swMbInformation,
-                (int)swMessageBoxBtn_e.swMbOk);
+            //_swApp.SendMsgToUser2(
+            //    "ForgePLM add-in connected.",
+            //    (int)swMessageBoxIcon_e.swMbInformation,
+            //    (int)swMessageBoxBtn_e.swMbOk);
 
             return true;
         }

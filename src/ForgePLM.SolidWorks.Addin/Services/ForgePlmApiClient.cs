@@ -1,4 +1,6 @@
 ﻿using ForgePLM.Contracts.Dtos;
+using ForgePLM.Contracts.Requests;
+using ForgePLM.Contracts.Responses;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -55,5 +57,50 @@ namespace ForgePLM.SolidWorks.Addin.Services
             var json = await response.Content.ReadAsStringAsync();
             return JsonConvert.DeserializeObject<List<RevisionDto>>(json) ?? new List<RevisionDto>();
         }
+
+        public async Task<bool> IsRuntimeAvailableAsync()
+        {
+            try
+            {
+                var response = await _http.GetAsync("/health");
+                return response.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<AssignRevisionResponse> AssignRevisionAsync(AssignRevisionRequest request)
+        {
+            var jsonContent = JsonConvert.SerializeObject(request);
+
+            var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
+
+            var response = await _http.PostAsync("/api/revisions/assign", content);
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+
+            //var result = JsonConvert.DeserializeObject<AssignRevisionResponse>(json);
+
+            return JsonConvert.DeserializeObject<AssignRevisionResponse>(json)
+       ?? throw new InvalidOperationException("Failed to deserialize AssignRevisionResponse.");
+        }
+
+        public async Task<OpenRevisionResponse> GetOpenInfoAsync(int revisionId)
+        {
+            var response = await _http.GetAsync($"/api/revisions/{revisionId}/open-info");
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+
+            //var result = JsonConvert.DeserializeObject<OpenRevisionResponse>(json);
+
+            return JsonConvert.DeserializeObject<OpenRevisionResponse>(json)
+        ?? throw new InvalidOperationException("Failed to deserialize OpenRevisionResponse.");
+        }
+
+
     }
 }

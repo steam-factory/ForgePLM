@@ -1,4 +1,9 @@
-﻿using System;
+﻿using ForgePLM.Contracts.Dtos;
+using ForgePLM.Contracts.Requests;
+using ForgePLM.SolidWorks.Addin.Services;
+using SolidWorks.Interop.sldworks;
+using SolidWorks.Interop.swconst;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -6,10 +11,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using ForgePLM.Contracts.Dtos;
-using ForgePLM.SolidWorks.Addin.Services;
-using SolidWorks.Interop.sldworks;
-using SolidWorks.Interop.swconst;
 
 namespace ForgePLM.SolidWorks.Addin
 {
@@ -419,7 +420,7 @@ namespace ForgePLM.SolidWorks.Addin
         {
             try
             {
-                MessageBox.Show("LoadInitialContextAsync fired.", "ForgePLM");
+                //MessageBox.Show("LoadInitialContextAsync fired.", "ForgePLM");
                 _isLoadingContext = true;
 
                 _cmbCustomer.Items.Clear();
@@ -433,7 +434,7 @@ namespace ForgePLM.SolidWorks.Addin
                     _cmbCustomer.Items.Add($"{customer.CustomerCode} - {customer.CustomerName}");
                 }
 
-                MessageBox.Show($"Customers loaded: {_customers.Count}", "ForgePLM");
+                //MessageBox.Show($"Customers loaded: {_customers.Count}", "ForgePLM");
 
                 if (_cmbCustomer.Items.Count > 0)
                 {
@@ -697,8 +698,125 @@ namespace ForgePLM.SolidWorks.Addin
 
             EvaluateActiveDocument();
         }
+        private async Task OpenSelectedRowAsync(EcoRowViewModel row)
+        {
+            if (_swApp == null)
+                return;
 
-        private void GridEcoContents_CellContentClick(object sender, DataGridViewCellEventArgs e)
+            try
+            {
+                var openInfo = await _api.GetOpenInfoAsync(row.RevisionId);
+
+                if (string.IsNullOrWhiteSpace(openInfo.FilePath))
+                {
+                    MessageBox.Show("No file path was returned for this revision.", "ForgePLM");
+                    return;
+                }
+
+                if (!System.IO.File.Exists(openInfo.FilePath))
+                {
+                    MessageBox.Show($"Resolved file was not found:\n{openInfo.FilePath}", "ForgePLM");
+                    return;
+                }
+
+                var existingDoc = FindOpenDocumentByPath(openInfo.FilePath);
+
+                if (existingDoc != null)
+                {
+                    ActivateDocument(existingDoc);
+                    EvaluateActiveDocument();
+                    return;
+                }
+
+
+
+                int errors = 0;
+                int warnings = 0;
+                _swApp.OpenDoc6(
+                    openInfo.FilePath,
+                    GetSwDocumentType(openInfo.DocumentType),
+                    (int)swOpenDocOptions_e.swOpenDocOptions_Silent,
+                    "",
+                    ref errors,
+                    ref warnings);
+
+                var openedDoc = FindOpenDocumentByPath(openInfo.FilePath);
+                if (openedDoc != null)
+                {
+                    ActivateDocument(openedDoc);
+                }
+
+                EvaluateActiveDocument();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Open failed:\n{ex.Message}", "ForgePLM");
+            }
+        }
+
+        private ModelDoc2 FindOpenDocumentByPath(string fullPath)
+        {
+            if (_swApp == null || string.IsNullOrWhiteSpace(fullPath))
+                return null;
+
+            string target = System.IO.Path.GetFullPath(fullPath);
+
+            object[] docs = _swApp.GetDocuments() as object[];
+            if (docs == null)
+                return null;
+
+            foreach (object obj in docs)
+            {
+                if (obj is ModelDoc2 doc)
+                {
+                    string docPath = doc.GetPathName();
+                    if (string.IsNullOrWhiteSpace(docPath))
+                        continue;
+
+                    string current = System.IO.Path.GetFullPath(docPath);
+
+                    if (string.Equals(current, target, StringComparison.OrdinalIgnoreCase))
+                        return doc;
+                }
+            }
+
+            return null;
+        }
+
+        private void ActivateDocument(ModelDoc2 doc)
+        {
+            if (_swApp == null || doc == null)
+                return;
+
+            string title = doc.GetTitle();
+            int errors = 0;
+
+            _swApp.ActivateDoc3(
+                title,
+                true,
+                (int)swRebuildOnActivation_e.swUserDecision,
+                ref errors);
+        }
+
+        private int GetSwDocumentType(string documentType)
+        {
+
+            switch ((documentType ?? string.Empty).Trim().ToUpperInvariant())
+            {
+                case "PART":
+                    return (int)swDocumentTypes_e.swDocPART;
+
+                case "ASSEMBLY":
+                    return (int)swDocumentTypes_e.swDocASSEMBLY;
+
+                case "DRAWING":
+                    return (int)swDocumentTypes_e.swDocDRAWING;
+
+                default:
+                    throw new InvalidOperationException($"Unsupported document type: {documentType}");
+            }
+        }
+        private async void GridEcoContents_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0 || e.ColumnIndex < 0)
                 return;
@@ -716,7 +834,7 @@ namespace ForgePLM.SolidWorks.Addin
             switch (columnName)
             {
                 case "Open":
-                    OpenSelectedRow(row);
+                    await OpenSelectedRowAsync(row);
                     break;
 
                 case "New":
@@ -724,7 +842,7 @@ namespace ForgePLM.SolidWorks.Addin
                     break;
 
                 case "Assign":
-                    AssignSelectedRow(row);
+                    await AssignSelectedRowAsync(row);
                     break;
             }
         }
@@ -802,30 +920,6 @@ namespace ForgePLM.SolidWorks.Addin
             }
         }
 
-        private void OpenSelectedRow(EcoRowViewModel row)
-        {
-            if (_swApp == null)
-                return;
-
-            if (string.IsNullOrWhiteSpace(row.FilePath))
-            {
-                MessageBox.Show("No file path is defined for this row.", "ForgePLM");
-                return;
-            }
-
-            int errors = 0;
-            int warnings = 0;
-
-            _swApp.OpenDoc6(
-                row.FilePath,
-                (int)swDocumentTypes_e.swDocPART,
-                (int)swOpenDocOptions_e.swOpenDocOptions_Silent,
-                "",
-                ref errors,
-                ref warnings);
-
-            EvaluateActiveDocument();
-        }
 
         private void CreateNewForRow(EcoRowViewModel row)
         {
@@ -943,7 +1037,7 @@ namespace ForgePLM.SolidWorks.Addin
                 return;
             }
         }
-        private void AssignSelectedRow(EcoRowViewModel row)
+        private async Task AssignSelectedRowAsync(EcoRowViewModel row)
         {
             var model = GetActiveModel();
             if (model == null)
@@ -960,22 +1054,41 @@ namespace ForgePLM.SolidWorks.Addin
                 return;
             }
 
-            var propMgr = model.Extension.CustomPropertyManager[""];
+            try
+            {
+                var result = await _api.AssignRevisionAsync(new AssignRevisionRequest
+                {
+                    RevisionId = row.RevisionId
+                });
 
-            EnsureProperty(propMgr, PropGuid, Guid.NewGuid().ToString().ToUpperInvariant());
-            EnsureProperty(propMgr, PropPartId, row.PartId.ToString());
-            EnsureProperty(propMgr, PropRevisionId, row.RevisionId.ToString());
-            EnsureProperty(propMgr, PropPartNumber, row.DisplayPartNumber);
-            EnsureProperty(propMgr, PropRevision, row.RevisionCode);
-            EnsureProperty(propMgr, PropDescription, row.Description ?? string.Empty);
-            EnsureProperty(propMgr, PropEco, row.EcoNumber ?? string.Empty);
-            EnsureProperty(propMgr, PropProject, row.ProjectDisplay ?? string.Empty);
+                if (result == null)
+                {
+                    MessageBox.Show("Runtime returned no assignment data.", "ForgePLM");
+                    return;
+                }
 
-            model.ForceRebuild3(false);
-            model.Save3((int)swSaveAsOptions_e.swSaveAsOptions_Silent, 0, 0);
+                var propMgr = model.Extension.CustomPropertyManager[""];
 
-            EvaluateActiveDocument();
-            ShowSaveToVaultDialog(row);
+                EnsureProperty(propMgr, PropGuid, result.Guid ?? string.Empty);
+                EnsureProperty(propMgr, PropPartId, result.PartId.ToString());
+                EnsureProperty(propMgr, PropRevisionId, result.RevisionId.ToString());
+                EnsureProperty(propMgr, PropPartNumber, result.PartNumber ?? string.Empty);
+                EnsureProperty(propMgr, PropRevision, result.RevisionCode ?? string.Empty);
+                EnsureProperty(propMgr, PropDescription, result.Description ?? string.Empty);
+                EnsureProperty(propMgr, PropEco, result.EcoNumber ?? string.Empty);
+                EnsureProperty(propMgr, PropProject, row.ProjectDisplay ?? string.Empty);
+
+                model.ForceRebuild3(false);
+                model.Save3((int)swSaveAsOptions_e.swSaveAsOptions_Silent, 0, 0);
+
+                EvaluateActiveDocument();
+
+                ShowSaveToVaultDialog(row);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Assign failed:\n{ex.Message}", "ForgePLM");
+            }
         }
 
         private void EvaluateActiveDocument()
