@@ -6,6 +6,7 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
+	
 
 	<ItemGroup>
 		<ProjectReference Include="..\ForgePLM.Runtime\ForgePLM.Runtime.csproj" />
@@ -14,4 +15,7 @@
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<PublishDir>..\..\run\ForgePLM.Runtime.Host\</PublishDir>
+	</PropertyGroup>
 </Project>
