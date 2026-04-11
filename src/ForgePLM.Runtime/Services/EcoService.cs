@@ -1,4 +1,5 @@
-﻿using ForgePLM.Contracts.Dtos;
+﻿using ForgePLM.Contracts.Eco;
+using ForgePLM.Contracts.Revisions;
 using ForgePLM.Runtime.Common;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -21,15 +22,19 @@ namespace ForgePLM.Runtime.Services
             var results = new List<EcoDto>();
 
             const string sql = @"
-SELECT
-    eco_id,
-    project_id,
-    eco_number,
-    eco_state,
-    release_level
-FROM eco
-WHERE project_id = @projectId
-ORDER BY eco_id DESC;";
+            SELECT
+                eco_id,
+                project_id,
+                eco_number_int,
+                eco_number,
+                eco_title,
+                eco_description,
+                release_level,
+                eco_state,
+                created_at
+            FROM eco
+            WHERE project_id = @projectId
+            ORDER BY eco_id DESC;";
 
             await using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
@@ -41,14 +46,17 @@ ORDER BY eco_id DESC;";
 
             while (await reader.ReadAsync())
             {
-                results.Add(new EcoDto
-                {
-                    EcoId = reader.GetInt32(reader.GetOrdinal("eco_id")),
-                    ProjectId = reader.GetInt32(reader.GetOrdinal("project_id")),
-                    EcoNumber = reader["eco_number"] as string ?? string.Empty,
-                    EcoState = reader["eco_state"] as string ?? string.Empty,
-                    ReleaseLevel = Convert.ToInt32(reader["release_level"])
-                });
+                results.Add(new EcoDto(
+                    EcoId: reader.GetInt32(reader.GetOrdinal("eco_id")),
+                    ProjectId: reader.GetInt32(reader.GetOrdinal("project_id")),
+                    EcoNumberInt: reader.GetInt32(reader.GetOrdinal("eco_number_int")),
+                    EcoNumber: reader["eco_number"] as string ?? string.Empty,
+                    EcoTitle: reader["eco_title"] as string ?? string.Empty,
+                    EcoDescription: reader["eco_description"] as string,
+                    ReleaseLevel: Convert.ToInt32(reader["release_level"]),
+                    EcoState: reader["eco_state"] as string ?? string.Empty,
+                    CreatedAt: reader.GetDateTime(reader.GetOrdinal("created_at"))
+                ));
             }
 
             return results;

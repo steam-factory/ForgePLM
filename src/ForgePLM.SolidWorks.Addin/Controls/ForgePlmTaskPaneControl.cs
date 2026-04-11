@@ -1,4 +1,6 @@
-﻿using ForgePLM.Contracts.Dtos;
+﻿using ForgePLM.Contracts.Customers;
+using ForgePLM.Contracts.Eco;
+using ForgePLM.Contracts.Projects;
 using ForgePLM.Contracts.Requests;
 using ForgePLM.SolidWorks.Addin.Services;
 using SolidWorks.Interop.sldworks;

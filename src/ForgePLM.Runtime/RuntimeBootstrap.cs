@@ -43,6 +43,8 @@ namespace ForgePLM.Runtime
             builder.Services.AddScoped<IProjectService, ProjectService>();
             builder.Services.AddScoped<IEcoService, EcoService>();
             builder.Services.AddScoped<IRevisionService, RevisionService>();
+            builder.Services.AddScoped<IPartCategoryService, PartCategoryService>();
+            builder.Services.AddScoped<IPartService, PartService>();
         }
 
         private static void ConfigurePipeline(WebApplication app, bool enableSwagger)

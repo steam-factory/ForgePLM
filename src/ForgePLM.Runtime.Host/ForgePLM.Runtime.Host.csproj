@@ -5,18 +5,25 @@
 		<UseWindowsForms>true</UseWindowsForms>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<ApplicationIcon>Assets\forgeplm.ico</ApplicationIcon>
 	</PropertyGroup>
-	
-
 
 	<ItemGroup>
 		<ProjectReference Include="..\ForgePLM.Runtime\ForgePLM.Runtime.csproj" />
+		<ProjectReference Include="..\ForgePLM\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<FrameworkReference Include="Microsoft.AspNetCore.App" />
 	</ItemGroup>
+
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<PublishDir>..\..\run\ForgePLM.Runtime.Host\</PublishDir>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="Assets\forgeplm.ico">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
 </Project>

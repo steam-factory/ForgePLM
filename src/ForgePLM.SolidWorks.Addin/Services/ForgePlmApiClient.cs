@@ -1,6 +1,9 @@
-﻿using ForgePLM.Contracts.Dtos;
+﻿using ForgePLM.Contracts.Revisions;
 using ForgePLM.Contracts.Requests;
 using ForgePLM.Contracts.Responses;
+using ForgePLM.Contracts.Customers;
+using ForgePLM.Contracts.Projects;
+using ForgePLM.Contracts.Eco;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;

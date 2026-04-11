@@ -1,4 +1,5 @@
-﻿using ForgePLM.Contracts.Dtos;
+﻿using ForgePLM.Contracts.Eco;
+using ForgePLM.Contracts.Revisions;
 
 namespace ForgePLM.Runtime.Services
 {

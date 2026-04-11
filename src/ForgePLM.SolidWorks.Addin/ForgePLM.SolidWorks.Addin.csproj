@@ -88,6 +88,7 @@
     </Compile>
     <Compile Include="Models\CustomerDto.cs" />
     <Compile Include="Models\EcoDto.cs" />
+    <Compile Include="Models\PartCategoryDto.cs" />
     <Compile Include="Models\PartDto.cs" />
     <Compile Include="Models\ProjectDto.cs" />
     <Compile Include="Models\RevisionDto.cs" />
@@ -109,8 +110,28 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ForgePLM.Contracts\ForgePLM.Contracts.csproj">
-      <Project>{10601844-25ca-4718-895b-8d361a13338f}</Project>
+    <Content Include="Assets\forgeplm_128.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\forgeplm_20.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\forgeplm_32.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\forgeplm_40.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\forgeplm_64.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\forgeplm_96.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ForgePLM\ForgePLM.Contracts\ForgePLM.Contracts.csproj">
+      <Project>{864dd39b-6a9d-633e-1a66-302d776080f0}</Project>
       <Name>ForgePLM.Contracts</Name>
     </ProjectReference>
   </ItemGroup>

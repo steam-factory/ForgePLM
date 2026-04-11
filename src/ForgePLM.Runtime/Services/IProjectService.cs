@@ -1,4 +1,4 @@
-﻿using ForgePLM.Contracts.Dtos;
+﻿using ForgePLM.Contracts.Projects;
 
 namespace ForgePLM.Runtime.Services
 {

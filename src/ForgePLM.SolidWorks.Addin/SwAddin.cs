@@ -1,9 +1,10 @@
-using System;
-using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using SolidWorks.Interop.sldworks;
 using SolidWorks.Interop.swconst;
 using SolidWorks.Interop.swpublished;
+using System;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
 namespace ForgePLM.SolidWorks.Addin
 {
@@ -61,15 +62,29 @@ namespace ForgePLM.SolidWorks.Addin
 
         private void CreateTaskPane()
         {
-            string iconPath = "";
+            string baseDir = System.IO.Path.GetDirectoryName(
+                System.Reflection.Assembly.GetExecutingAssembly().Location);
 
-            _taskPaneView = _swApp.CreateTaskpaneView2(iconPath, "ForgePLM");
+            string assetsDir = System.IO.Path.Combine(baseDir, "Assets");
+
+            object imageList = new string[]
+            {
+                System.IO.Path.Combine(assetsDir, "forgeplm_20.png"),
+                System.IO.Path.Combine(assetsDir, "forgeplm_32.png"),
+                System.IO.Path.Combine(assetsDir, "forgeplm_40.png"),
+                System.IO.Path.Combine(assetsDir, "forgeplm_64.png"),
+                System.IO.Path.Combine(assetsDir, "forgeplm_96.png"),
+                System.IO.Path.Combine(assetsDir, "forgeplm_128.png")
+            };
+
+            _taskPaneView = _swApp.CreateTaskpaneView3(imageList, "ForgePLM");
 
             _taskPaneView.AddControl(
                 "ForgePLM.SolidWorks.Addin.ForgePlmTaskPaneControl",
                 "");
 
             object controlObject = _taskPaneView.GetControl();
+
             _taskPaneControl = controlObject as ForgePlmTaskPaneControl;
 
             if (_taskPaneControl != null)

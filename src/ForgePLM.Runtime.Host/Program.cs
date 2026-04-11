@@ -9,7 +9,15 @@ namespace ForgePLM.Runtime.Host
         static void Main()
         {
             ApplicationConfiguration.Initialize();
-            Application.Run(new MainForm());
+
+            // 🔥 Start your Runtime
+            RuntimeBootstrap.BuildApp(Array.Empty<string>(), enableSwagger: true)
+                .StartAsync()
+                .GetAwaiter()
+                .GetResult();
+
+            // 🔥 Start tray app
+            Application.Run(new TrayApplicationContext());
         }
     }
 }
