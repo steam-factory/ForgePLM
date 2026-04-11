@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ForgePLM.Contracts.Parts;
+namespace ForgePLM.Contracts.Revisions;
 
 public sealed record PartRevisionItemDto(
     int PartId,
@@ -16,4 +16,8 @@ public sealed record PartRevisionItemDto(
     string RevisionState,
     string CompositeCode,
     string Description
-);
+)
+{
+    public string DisplayPartNumber => $"{CategoryCode}-{PartNumberInt:0000000}";
+    public string DisplayCompositeCode => $"{CategoryCode}-{PartNumberInt:0000000}-{RevisionCode}";
+};

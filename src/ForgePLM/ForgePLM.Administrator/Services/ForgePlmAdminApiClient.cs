@@ -8,6 +8,7 @@ using System.Net.Http.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using ForgePLM.Contracts.Eco;
+using ForgePLM.Contracts.Revisions;
 
 namespace ForgePLM.Administrator.Services
 {
@@ -20,13 +21,13 @@ namespace ForgePLM.Administrator.Services
         {
             _httpClient = new HttpClient
             {
-                BaseAddress = new Uri("http://127.0.0.1:5217")
+                BaseAddress = new Uri("http://127.0.0.1:5269")
             };
         }
 
         public async Task<string> GetHealthAsync()
         {
-            var response = await _httpClient.GetAsync("/api/health");
+            var response = await _httpClient.GetAsync("/health");
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync();
         }
@@ -61,14 +62,12 @@ namespace ForgePLM.Administrator.Services
         }
 
         
-        //Project Helpers
         public async Task<IReadOnlyList<ProjectDto>> GetProjectsByCustomerAsync(
             int customerId,
             CancellationToken cancellationToken = default)
         {
-            var url = $"api/projects/by-customer/{customerId}";
             var projects = await _httpClient.GetFromJsonAsync<List<ProjectDto>>(
-                $"api/projects/by-customer/{customerId}",
+                $"/api/customers/{customerId}/projects",
                 cancellationToken);
             return projects ?? new List<ProjectDto>();
         }
@@ -113,7 +112,7 @@ namespace ForgePLM.Administrator.Services
     CancellationToken cancellationToken = default)
         {
             var response = await _httpClient.GetFromJsonAsync<List<EcoDto>>(
-                $"/api/eco/by-project/{projectId}",
+                $"/api/projects/{projectId}/ecos",
                 cancellationToken);
 
             return response ?? new List<EcoDto>();
@@ -124,7 +123,7 @@ namespace ForgePLM.Administrator.Services
             CancellationToken cancellationToken = default)
         {
             using var response = await _httpClient.PostAsJsonAsync(
-                "/api/eco",
+                "/api/ecos",
                 request,
                 cancellationToken);
 
@@ -142,7 +141,7 @@ namespace ForgePLM.Administrator.Services
             CancellationToken cancellationToken = default)
         {
             using var response = await _httpClient.PutAsJsonAsync(
-                $"/api/eco/{ecoId}",
+                $"/api/ecos/{ecoId}",
                 request,
                 cancellationToken);
 
@@ -179,7 +178,7 @@ namespace ForgePLM.Administrator.Services
             CancellationToken cancellationToken = default)
         {
             var response = await _httpClient.GetFromJsonAsync<List<PartRevisionItemDto>>(
-                $"/api/parts/by-eco/{ecoId}",
+                $"/api/ecos/{ecoId}/contents",
                 cancellationToken);
 
             return response ?? new List<PartRevisionItemDto>();

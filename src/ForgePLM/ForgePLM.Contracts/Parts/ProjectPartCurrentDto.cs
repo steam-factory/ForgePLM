@@ -10,7 +10,8 @@ public sealed record ProjectPartCurrentDto(
     int PartNumberInt,
     string PartNumber,
     int CurrentRevisionId,
-    int RevisionCode,
+    int RevisionId,
+    string RevisionCode,
     int RevisionFamily,
     string RevisionState,
     int EcoId,
@@ -18,6 +19,7 @@ public sealed record ProjectPartCurrentDto(
     string EcoState,
     string Description,
     string CompositeCode,
+    string DocumentType,
     bool CanSelect,
     string? AvailabilityReason
 );

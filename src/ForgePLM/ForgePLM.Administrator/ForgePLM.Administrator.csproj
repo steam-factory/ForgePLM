@@ -8,11 +8,35 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
   </PropertyGroup>
+	 <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+  <PublishDir>E:\ForgePLM\run\ForgePLM.Administrator\</PublishDir>
+</PropertyGroup>		 
+	 
+
+  <ItemGroup>
+    <None Remove="Assets\forgeplm.ico" />
+    <None Remove="Assets\forgeplm_128.png" />
+    <None Remove="Assets\forgeplm_20.png" />
+    <None Remove="Assets\forgeplm_32.png" />
+    <None Remove="Assets\forgeplm_40.png" />
+    <None Remove="Assets\forgeplm_64.png" />
+    <None Remove="Assets\forgeplm_96.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
     <ProjectReference Include="..\ForgePLM.Data\ForgePLM.Data.csproj" />
     <ProjectReference Include="..\ForgePLM.Service\ForgePLM.Service.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\forgeplm.ico" />
+  </ItemGroup>
+
+	 <ItemGroup>
+		 <Content Include="Assets\forgeplm.ico">
+			 <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		 </Content>
+	 </ItemGroup>
 
 </Project>

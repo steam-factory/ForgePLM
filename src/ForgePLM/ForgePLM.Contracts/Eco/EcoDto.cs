@@ -1,4 +1,5 @@
-﻿namespace ForgePLM.Contracts.Eco;
+﻿using System;
+namespace ForgePLM.Contracts.Eco;
 
 public sealed record EcoDto(
     int EcoId,

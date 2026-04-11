@@ -292,7 +292,7 @@
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <TextBlock Text="{Binding CompositeCode}"
+                                        <TextBlock Text="{Binding DisplayCompositeCode }"
                                            FontWeight="SemiBold"
                                            FontSize="12"
                                            LineStackingStrategy="BlockLineHeight"

@@ -4,6 +4,7 @@ using ForgePLM.Contracts.Eco;
 using ForgePLM.Contracts.PartCategories;
 using ForgePLM.Contracts.Parts;
 using ForgePLM.Contracts.Projects;
+using ForgePLM.Contracts.Revisions;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
@@ -49,7 +50,7 @@ namespace ForgePLM.Administrator.Views
         private async void EcoBuilderView_Loaded(object sender, RoutedEventArgs e)
         {
             await LoadCustomersAsync();
-            await LoadPartCategoriesAsync();
+            //await LoadPartCategoriesAsync();
         }
 
         private async Task LoadCustomersAsync()

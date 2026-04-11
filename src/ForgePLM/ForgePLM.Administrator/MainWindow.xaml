@@ -5,7 +5,9 @@
         Title="ForgePLM Administrator"
         Height="720"
         Width="1200"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Icon="Assets/forgeplm.ico"
+        >
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="240"/>

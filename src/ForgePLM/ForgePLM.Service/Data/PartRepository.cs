@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using ForgePLM.Contracts.Parts;
+using ForgePLM.Contracts.Revisions;
 using Microsoft.Data.SqlClient;
 
 namespace ForgePLM.Service.Data;
@@ -85,6 +86,7 @@ public partial class PartRepository
             p.category_code,
             p.part_number_int,
             p.part_number,
+            p.document_type,
             r.revision_id,
             r.revision_code,
             r.revision_family,
@@ -123,15 +125,17 @@ public partial class PartRepository
                 CategoryCode: categoryCode,
                 PartNumberInt: partNumberInt,
                 PartNumber: reader.GetString(3),
-                CurrentRevisionId: reader.GetInt32(4),
-                RevisionCode: revisionCode,
-                RevisionFamily: reader.GetInt32(6),
-                RevisionState: reader.GetString(7),
-                EcoId: reader.GetInt32(8),
-                EcoNumber: reader.GetString(9),
-                EcoState: reader.GetString(10),
-                Description: reader.GetString(11),
+                CurrentRevisionId: reader.GetInt32(5),
+                RevisionId: reader.GetInt32(5),
+                RevisionCode: reader.GetString(6),
+                RevisionFamily: reader.GetInt32(7),
+                RevisionState: reader.GetString(8),
+                EcoId: reader.GetInt32(9),
+                EcoNumber: reader.GetString(10),
+                EcoState: reader.GetString(11),
+                Description: reader.GetString(12),
                 CompositeCode: $"{categoryCode}-{partNumberInt:0000000}-{revisionCode}",
+                DocumentType: reader["document_type"]?.ToString() ?? "PART",
                 CanSelect: false,
                 AvailabilityReason: "No active ECO selected."
             ));

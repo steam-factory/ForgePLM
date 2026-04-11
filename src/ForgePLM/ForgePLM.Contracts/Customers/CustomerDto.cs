@@ -1,4 +1,5 @@
-﻿namespace ForgePLM.Contracts.Customers;
+﻿using System;
+namespace ForgePLM.Contracts.Customers;
 
 public record CustomerDto(
     int CustomerId,
