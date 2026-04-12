@@ -2,6 +2,7 @@
 using ForgePLM.Contracts.PartCategories;
 using ForgePLM.Contracts.Parts;
 using ForgePLM.Contracts.Projects;
+using ForgePLM.Contracts.Requests;
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -66,6 +67,34 @@ namespace ForgePLM.Administrator.Services
                 $"/api/customers/{customerId}/projects",
                 cancellationToken);
             return projects ?? new List<ProjectDto>();
+        }
+
+        public async Task<IReadOnlyList<PartNumberManagerItemDto>> GetPartNumberManagerItemsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.GetFromJsonAsync<List<PartNumberManagerItemDto>>(
+                "/api/parts",
+                cancellationToken);
+
+            return response ?? new List<PartNumberManagerItemDto>();
+        }
+
+        public async Task<PartNumberManagerItemDto> UpdateRevisionDescriptionAsync(
+            int revisionId,
+            UpdateRevisionDescriptionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.PutAsJsonAsync(
+                $"/api/revisions/{revisionId}/description",
+                request,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var updated = await response.Content.ReadFromJsonAsync<PartNumberManagerItemDto>(
+                cancellationToken: cancellationToken);
+
+            return updated ?? throw new InvalidOperationException("Revision description update returned no body.");
         }
 
         public async Task<ProjectDto> CreateProjectAsync(
