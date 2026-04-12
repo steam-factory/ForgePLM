@@ -1,19 +1,543 @@
 ﻿<UserControl x:Class="ForgePLM.Administrator.Views.DashboardView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Margin="20">
-        <Border Background="{StaticResource Brush.CardBackground}"
-                BorderBrush="{StaticResource Brush.CardBorder}"
-                BorderThickness="1"
-                CornerRadius="14"
-                Padding="24">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="18"
-                                  ShadowDepth="2"
-                                  Opacity="0.12"/>
-            </Border.Effect>
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Background="#0F172A">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="18"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="18"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
+            <!-- Header -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-        </Border>
-    </Grid>
+                <StackPanel>
+                    <TextBlock Text="Operational Overview"
+                               FontSize="30"
+                               FontWeight="Bold"
+                               Foreground="White"/>
+                    <TextBlock Text="Engineering control, project activity, storage, and production visibility."
+                               Margin="0,6,0,0"
+                               FontSize="14"
+                               Foreground="#94A3B8"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Top">
+                    <Border Background="#1E293B"
+                            BorderBrush="#334155"
+                            BorderThickness="1"
+                            CornerRadius="18"
+                            Padding="12,6"
+                            Margin="0,0,8,0">
+                        <TextBlock Text="Live Demo"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="#38BDF8"/>
+                    </Border>
+
+                    <Border Background="#1D4ED8"
+                            CornerRadius="18"
+                            Padding="12,6">
+                        <TextBlock Text="Last Sync: 2 min ago"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <!-- KPI strip -->
+            <UniformGrid Grid.Row="2"
+                         Columns="4">
+                <Border Margin="0,0,12,0"
+                        Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Open ECOs"
+                                   FontSize="12"
+                                   Foreground="#94A3B8"/>
+                        <TextBlock Text="14"
+                                   Margin="0,8,0,0"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="0,0,12,0"
+                        Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Released This Week"
+                                   FontSize="12"
+                                   Foreground="#94A3B8"/>
+                        <TextBlock Text="46"
+                                   Margin="0,8,0,0"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Margin="0,0,12,0"
+                        Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="Artifacts Added"
+                                   FontSize="12"
+                                   Foreground="#94A3B8"/>
+                        <TextBlock Text="132"
+                                   Margin="0,8,0,0"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="16"
+                        Padding="16">
+                    <StackPanel>
+                        <TextBlock Text="System Health"
+                                   FontSize="12"
+                                   Foreground="#94A3B8"/>
+                        <TextBlock Text="Nominal"
+                                   Margin="0,8,0,0"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Foreground="#22C55E"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <!-- Main cards -->
+            <UniformGrid Grid.Row="4"
+                         Columns="3"
+                         Rows="2">
+
+                <!-- Card 1 -->
+                <Border Margin="0,0,16,16"
+                        Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="20"
+                        Padding="22">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="14"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <DockPanel>
+                            <TextBlock Text="Part Numbers Managed"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#CBD5E1"
+                                       DockPanel.Dock="Left"/>
+                            <Border Background="#052E16"
+                                    CornerRadius="10"
+                                    Padding="8,3"
+                                    DockPanel.Dock="Right">
+                                <TextBlock Text="+8.4%"
+                                           FontSize="11"
+                                           FontWeight="Bold"
+                                           Foreground="#4ADE80"/>
+                            </Border>
+                        </DockPanel>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="12,486"
+                                   FontSize="38"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+
+                        <TextBlock Grid.Row="4"
+                                   Text="All managed parts across active projects, categories, and revision families."
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="#94A3B8"/>
+                    </Grid>
+                </Border>
+
+                <!-- Card 2 -->
+                <Border Margin="0,0,16,16"
+                        Background="DarkSlateBlue"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="20"
+                        Padding="22">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="14"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Activity Pulse"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="#CBD5E1"/>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="428 events this week"
+                                   FontSize="30"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+
+                        <Grid Grid.Row="4"
+                              Height="200">
+                            <Viewbox Stretch="Fill">
+                                <Grid Width="300" Height="120">
+                                    <Rectangle Fill="#233047"
+                                       RadiusX="12"
+                                       RadiusY="12"
+                                       Stroke="#1E293B"
+                                       StrokeThickness="1"/>
+
+                                    <Canvas Margin="10">
+                                        <Line X1="0" Y1="84" X2="280" Y2="84" Stroke="#233047" StrokeThickness="1"/>
+                                        <Line X1="0" Y1="56" X2="280" Y2="56" Stroke="#233047" StrokeThickness="1"/>
+                                        <Line X1="0" Y1="28" X2="280" Y2="28" Stroke="#233047" StrokeThickness="1"/>
+
+                                        <Polyline Stroke="#38BDF8"
+                                          StrokeThickness="3"
+                                          StrokeLineJoin="Round"
+                                          Points="6,82 34,75 62,78 90,54 118,60 146,36 174,42 202,24 230,30 258,16"/>
+                                    </Canvas>
+                                </Grid>
+                            </Viewbox>
+                        </Grid>
+
+                        <TextBlock Grid.Row="6"
+                                   Text="Parts, ECOs, revisions, and artifact activity over time."
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="#94A3B8"/>
+                    </Grid>
+                </Border>
+
+                <!-- Card 3 -->
+                <Border Margin="0,0,0,16"
+                        Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="20"
+                        Padding="22">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Storage Utilization"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="#CBD5E1"/>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="842 GB / 2 TB"
+                                   FontSize="30"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+
+                        <Grid Grid.Row="4" Height="16">
+                            <Border Background="#0B1220"
+                                    CornerRadius="8"/>
+                            <Border Background="#2563EB"
+                                    CornerRadius="8"
+                                    Width="140"
+                                    HorizontalAlignment="Left"/>
+                        </Grid>
+
+                        <DockPanel Grid.Row="6">
+                            <TextBlock Text="42% used"
+                                       FontSize="12"
+                                       Foreground="#94A3B8"
+                                       DockPanel.Dock="Left"/>
+                            <TextBlock Text="CAD • PDFs • STEP • Artifacts"
+                                       FontSize="12"
+                                       Foreground="#64748B"
+                                       DockPanel.Dock="Right"/>
+                        </DockPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Card 4 -->
+                <Border Margin="0,0,16,0"
+                        Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="20"
+                        Padding="22">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="18"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Projects"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="#CBD5E1"/>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="37 active"
+                                   FontSize="36"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+
+                        <Border Grid.Row="4"
+                                Background="#0B1220"
+                                BorderBrush="#1E293B"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="12">
+                            <DockPanel>
+                                <TextBlock Text="Top Project"
+                                           FontSize="12"
+                                           Foreground="#94A3B8"
+                                           DockPanel.Dock="Left"/>
+                                <TextBlock Text="VRAD0-0001"
+                                           FontSize="12"
+                                           FontWeight="Bold"
+                                           Foreground="#38BDF8"
+                                           DockPanel.Dock="Right"/>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Row="6"
+                                Background="#0B1220"
+                                BorderBrush="#1E293B"
+                                BorderThickness="1"
+                                CornerRadius="14"
+                                Padding="12">
+                            <DockPanel>
+                                <TextBlock Text="Open ECOs"
+                                           FontSize="12"
+                                           Foreground="#94A3B8"
+                                           DockPanel.Dock="Left"/>
+                                <TextBlock Text="14"
+                                           FontSize="12"
+                                           FontWeight="Bold"
+                                           Foreground="White"
+                                           DockPanel.Dock="Right"/>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Card 5 -->
+                <Border Margin="0,0,16,0"
+                        Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="20"
+                        Padding="22">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="18"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Print Activity"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="#CBD5E1"/>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="26 jobs today"
+                                   FontSize="32"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+
+                        <Border Grid.Row="4"
+                                Background="#052E16"
+                                CornerRadius="14"
+                                Padding="12">
+                            <DockPanel>
+                                <TextBlock Text="Running Now"
+                                           FontSize="12"
+                                           Foreground="#86EFAC"
+                                           DockPanel.Dock="Left"/>
+                                <TextBlock Text="8"
+                                           FontSize="12"
+                                           FontWeight="Bold"
+                                           Foreground="#DCFCE7"
+                                           DockPanel.Dock="Right"/>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Row="6"
+                                Background="#3F1D0D"
+                                CornerRadius="14"
+                                Padding="12">
+                            <DockPanel>
+                                <TextBlock Text="Queued"
+                                           FontSize="12"
+                                           Foreground="#FDBA74"
+                                           DockPanel.Dock="Left"/>
+                                <TextBlock Text="11"
+                                           FontSize="12"
+                                           FontWeight="Bold"
+                                           Foreground="#FFEDD5"
+                                           DockPanel.Dock="Right"/>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Grid.Row="8"
+                                Background="#2E1065"
+                                CornerRadius="14"
+                                Padding="12">
+                            <DockPanel>
+                                <TextBlock Text="Completed"
+                                           FontSize="12"
+                                           Foreground="#C4B5FD"
+                                           DockPanel.Dock="Left"/>
+                                <TextBlock Text="7"
+                                           FontSize="12"
+                                           FontWeight="Bold"
+                                           Foreground="#EDE9FE"
+                                           DockPanel.Dock="Right"/>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Card 6 -->
+                <Border Margin="0,0,0,0"
+                        Background="#111827"
+                        BorderBrush="#1F2937"
+                        BorderThickness="1"
+                        CornerRadius="20"
+                        Padding="22">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="12"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="16"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="14"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <DockPanel>
+                            <TextBlock Text="Engineering → Production"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#CBD5E1"
+                                       DockPanel.Dock="Left"/>
+                            <Border Background="#172554"
+                                    CornerRadius="10"
+                                    Padding="8,3"
+                                    DockPanel.Dock="Right">
+                                <TextBlock Text="Premium View"
+                                           FontSize="11"
+                                           FontWeight="Bold"
+                                           Foreground="#93C5FD"/>
+                            </Border>
+                        </DockPanel>
+
+                        <TextBlock Grid.Row="2"
+                                   Text="$12,480"
+                                   FontSize="34"
+                                   FontWeight="Bold"
+                                   Foreground="White"/>
+
+                        <TextBlock Grid.Row="4"
+                                   Text="Revenue tied to managed parts this month"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="#94A3B8"/>
+
+                        <DockPanel Grid.Row="6">
+                            <TextBlock Text="Parts Released"
+                                       FontSize="13"
+                                       Foreground="#94A3B8"
+                                       DockPanel.Dock="Left"/>
+                            <TextBlock Text="46"
+                                       FontSize="13"
+                                       FontWeight="Bold"
+                                       Foreground="White"
+                                       DockPanel.Dock="Right"/>
+                        </DockPanel>
+
+                        <DockPanel Grid.Row="8">
+                            <TextBlock Text="Prints Triggered"
+                                       FontSize="13"
+                                       Foreground="#94A3B8"
+                                       DockPanel.Dock="Left"/>
+                            <TextBlock Text="31"
+                                       FontSize="13"
+                                       FontWeight="Bold"
+                                       Foreground="White"
+                                       DockPanel.Dock="Right"/>
+                        </DockPanel>
+
+                        <DockPanel Grid.Row="10">
+                            <TextBlock Text="Completion Rate"
+                                       FontSize="13"
+                                       Foreground="#94A3B8"
+                                       DockPanel.Dock="Left"/>
+                            <TextBlock Text="93%"
+                                       FontSize="13"
+                                       FontWeight="Bold"
+                                       Foreground="#4ADE80"
+                                       DockPanel.Dock="Right"/>
+                        </DockPanel>
+                    </Grid>
+                </Border>
+            </UniformGrid>
+        </Grid>
+    </ScrollViewer>
 </UserControl>
