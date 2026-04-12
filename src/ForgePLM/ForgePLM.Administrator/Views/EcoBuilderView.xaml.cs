@@ -418,11 +418,12 @@ namespace ForgePLM.Administrator.Views
 
             try
             {
-                var request = new ForgePLM.Contracts.Parts.CreatePartRequest(
+                var request = new CreatePartRequest(
                     ProjectCode: _selectedProject.ProjectCode,
-                    EcoNumber: _selectedEco.EcoNumber,
+                    EcoId: _selectedEco.EcoId, // ✅ FIXED
                     CategoryCode: dialog.SelectedCategoryCode!,
-                    Description: dialog.Description!
+                    Description: dialog.Description!,
+                    DocumentType: dialog.DocumentType ?? "PART"
                 );
 
                 var created = await _apiClient.CreatePartUnderEcoAsync(request);

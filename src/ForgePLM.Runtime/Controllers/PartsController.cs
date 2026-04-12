@@ -1,10 +1,8 @@
 ﻿using ForgePLM.Contracts.Parts;
 using ForgePLM.Contracts.Requests;
+using ForgePLM.Contracts.Responses;
 using ForgePLM.Runtime.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ForgePLM.Runtime.Controllers
 {
@@ -37,6 +35,21 @@ namespace ForgePLM.Runtime.Controllers
         {
             var results = await _partService.GetProjectPartsCurrentAsync(projectId, cancellationToken);
             return Ok(results);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<CreatePartEnvelope>> Create(
+        [FromBody] CreatePartRequest request,
+        CancellationToken cancellationToken)
+        {
+            var result = await _partService.CreatePartAsync(request, cancellationToken);
+
+            return Ok(new CreatePartEnvelope
+            {
+                Success = true,
+                Data = result,
+                TraceId = HttpContext.TraceIdentifier
+            });
         }
 
         [HttpPut("/api/revisions/{revisionId:int}/description")]

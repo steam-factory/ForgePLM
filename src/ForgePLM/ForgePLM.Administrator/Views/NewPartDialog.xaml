@@ -51,19 +51,9 @@
                     <ColumnDefinition Width="16"/>
                     <ColumnDefinition Width="140"/>
                     <ColumnDefinition Width="16"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="150"/>
                 </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="Part Number"
-                               Style="{StaticResource FieldLabelTextStyle}"/>
-                    <TextBox x:Name="PartNumberTextBox"
-                             Margin="0,4,0,0"
-                             Text="#######"
-                             IsReadOnly="True"
-                             IsTabStop="False"/>
-                </StackPanel>
-
+                
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="Category"
                                Style="{StaticResource FieldLabelTextStyle}"/>
@@ -72,6 +62,33 @@
                               SelectedValuePath="CategoryCode"
                               DisplayMemberPath="CategoryCode"/>
                 </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Part Number"
+                               Style="{StaticResource FieldLabelTextStyle}"/>
+                    <TextBox x:Name="PartNumberTextBox"
+                             Margin="0,4,0,0"
+                             Height="30"
+                             Text="#######"
+                             IsReadOnly="True"
+                             IsTabStop="False"/>
+                </StackPanel>
+                <StackPanel Grid.Column="4">
+
+                    <TextBlock Text="Type"
+                               Style="{StaticResource FieldLabelTextStyle}"/>
+
+                    <ComboBox x:Name="DocumentTypeComboBox"
+                          SelectedIndex="0"
+                          Width="150" 
+                          Margin="0,4,0,0"
+                              >
+                        <ComboBoxItem Content="PART"/>
+                        <ComboBoxItem Content="ASSEMBLY"/>
+                        <ComboBoxItem Content="DRAWING"/>
+                    </ComboBox>
+                </StackPanel>
+
             </Grid>
 
             <!-- Customer / Project -->

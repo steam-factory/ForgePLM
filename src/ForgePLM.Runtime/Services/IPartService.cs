@@ -1,4 +1,5 @@
 ﻿using ForgePLM.Contracts.Parts;
+using ForgePLM.Contracts.Revisions;
 
 namespace ForgePLM.Runtime.Services
 {
@@ -6,6 +7,10 @@ namespace ForgePLM.Runtime.Services
     {
         Task<List<ProjectPartCurrentDto>> GetProjectPartsCurrentAsync(
             int projectId,
+            CancellationToken cancellationToken = default);
+
+        Task<PartRevisionItemDto> CreatePartAsync(
+            CreatePartRequest request,
             CancellationToken cancellationToken = default);
     }
 }

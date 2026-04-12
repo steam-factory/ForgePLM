@@ -179,7 +179,7 @@ namespace ForgePLM.Administrator.Services
         }
 
         public async Task<PartRevisionItemDto> CreatePartUnderEcoAsync(
-            ForgePLM.Contracts.Parts.CreatePartRequest request,
+            CreatePartRequest request,
             CancellationToken cancellationToken = default)
         {
             using var response = await _httpClient.PostAsJsonAsync(

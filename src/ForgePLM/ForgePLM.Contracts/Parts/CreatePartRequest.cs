@@ -8,7 +8,8 @@ namespace ForgePLM.Contracts.Parts;
 
 public sealed record CreatePartRequest(
     string ProjectCode,
-    string EcoNumber,
+    int EcoId,
     string CategoryCode,
-    string Description
+    string Description,
+    string DocumentType
 );

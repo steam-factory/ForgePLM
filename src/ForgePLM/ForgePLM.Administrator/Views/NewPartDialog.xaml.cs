@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Windows;
-using ForgePLM.Contracts.Customers;
+﻿using ForgePLM.Contracts.Customers;
 using ForgePLM.Contracts.Eco;
 using ForgePLM.Contracts.PartCategories;
 using ForgePLM.Contracts.Projects;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
 
 namespace ForgePLM.Administrator.Views
 {
@@ -22,6 +23,8 @@ namespace ForgePLM.Administrator.Views
 
         public string? SelectedCategoryCode =>
             CategoryCodeComboBox.SelectedValue?.ToString();
+        public string? DocumentType =>
+            (DocumentTypeComboBox.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
         public NewPartDialog(
             CustomerDto selectedCustomer,
