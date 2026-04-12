@@ -13,12 +13,11 @@ namespace ForgePLM.Administrator
         public MainWindow()
         {
             InitializeComponent();
-            ShowView(new DashboardView());
-            Loaded += MainWindow_Loaded;
             VersionTextBlock.Text = BuildInfo.DisplayVersion;
-
             VersionTextBlock.ToolTip =
                 $"Built: {BuildInfo.BuildDate}\nCommit: {BuildInfo.Commit}";
+            ShowView(new DashboardView());
+            Loaded += MainWindow_Loaded;
         }
         private void ShowView(object view)
         {
