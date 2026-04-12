@@ -50,7 +50,7 @@ namespace ForgePLM.Administrator.Views
         private async void EcoBuilderView_Loaded(object sender, RoutedEventArgs e)
         {
             await LoadCustomersAsync();
-            //await LoadPartCategoriesAsync();
+            await LoadPartCategoriesAsync();
         }
 
         private async Task LoadCustomersAsync()
