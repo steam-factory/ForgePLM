@@ -35,12 +35,8 @@ namespace ForgePLM.Administrator.Services
 
         public async Task<IReadOnlyList<PartCategoryDto>> GetPartCategoriesAsync()
         {
-            var response = await _httpClient.GetAsync("/api/part-categories");
-            response.EnsureSuccessStatusCode();
-
-            var payload = await response.Content.ReadFromJsonAsync<PartCategoryEnvelope>();
-
-            return payload?.Data ?? new List<PartCategoryDto>();
+            var response = await _httpClient.GetFromJsonAsync<List<PartCategoryDto>>("/api/part-categories");
+            return response ?? new List<PartCategoryDto>();
         }
 
         public async Task<List<CustomerDto>> GetCustomersAsync()
@@ -202,11 +198,11 @@ namespace ForgePLM.Administrator.Services
             string TraceId
         );
 
-        private sealed record CreateCustomerEnvelope(
-            bool Success,
-            CustomerDto Data,
-            string TraceId
-        );
+        //private sealed record CreateCustomerEnvelope(
+        //    bool Success,
+        //    CustomerDto Data,
+        //    string TraceId
+        //);
 
         private sealed record PartCategoryEnvelope(
             bool Success,
