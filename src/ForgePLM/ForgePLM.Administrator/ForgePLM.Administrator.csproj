@@ -37,4 +37,30 @@
 		 </Content>
 	 </ItemGroup>
 
+	 <ItemGroup>
+		 <BuildInfoLines Include="namespace ForgePLM.Administrator" />
+		 <BuildInfoLines Include="{" />
+		 <BuildInfoLines Include="    internal static class BuildInfo" />
+		 <BuildInfoLines Include="    {" />
+		 <BuildInfoLines Include="        internal const string BuildDate = &quot;$(BuildTimestamp)&quot;%3B" />
+		 <BuildInfoLines Include="        internal const string Commit = &quot;$(SourceRevisionId)&quot;%3B" />
+		 <BuildInfoLines Include="        internal const string DisplayVersion = &quot;1.0.$(ShortTimestamp)&quot;%3B" />
+		 <BuildInfoLines Include="    }" />
+		 <BuildInfoLines Include="}" />
+	 </ItemGroup>
+
+	 <Target Name="WriteBuildInfo" BeforeTargets="BeforeBuild">
+		 <PropertyGroup>
+			 <BuildTimestamp>$([System.DateTime]::Now.ToString("yyyy-MM-dd HH:mm"))</BuildTimestamp>
+			 <ShortTimestamp>$([System.DateTime]::Now.ToString("yyMMdd.HHmm"))</ShortTimestamp>
+		 </PropertyGroup>
+
+		 <WriteLinesToFile
+		   File="BuildInfo.g.cs"
+		   Lines="@(BuildInfoLines)"
+		   Overwrite="true" />
+
+		
+	 </Target>
+
 </Project>

@@ -1,7 +1,8 @@
-﻿using System;
-using System.Windows;
-using ForgePLM.Administrator.Services;
+﻿using ForgePLM.Administrator.Services;
 using ForgePLM.Administrator.Views;
+using System;
+using System.Windows;
+using System.Windows.Input;
 
 namespace ForgePLM.Administrator
 {
@@ -14,6 +15,10 @@ namespace ForgePLM.Administrator
             InitializeComponent();
             ShowView(new DashboardView());
             Loaded += MainWindow_Loaded;
+            VersionTextBlock.Text = BuildInfo.DisplayVersion;
+
+            VersionTextBlock.ToolTip =
+                $"Built: {BuildInfo.BuildDate}\nCommit: {BuildInfo.Commit}";
         }
         private void ShowView(object view)
         {
@@ -30,6 +35,14 @@ namespace ForgePLM.Administrator
 
 
             
+        }
+        private void VersionTextBlock_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            MessageBox.Show(
+                $"Version: {BuildInfo.DisplayVersion}\n" +
+                $"Built: {BuildInfo.BuildDate}\n" +
+                $"Commit: {BuildInfo.Commit}",
+                "ForgePLM Build Info");
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)

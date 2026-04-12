@@ -16,13 +16,27 @@
 
         <Border Grid.Column="0" Background="{StaticResource Brush.SidebarBackground}">
             <DockPanel>
-                <TextBlock Text="ForgePLM"
-                           Foreground="White"
-                           FontSize="26"
-                           FontWeight="Bold"
-                           Margin="20,20,20,30"
-                           DockPanel.Dock="Top"/>
 
+                <!-- 🔻 Bottom Version Info -->
+                <TextBlock x:Name="VersionTextBlock"
+                   Text="v1.0"
+                   Foreground="White"
+                   FontSize="12"
+                   Opacity="0.7"
+                   Margin="20,10,20,15"
+                   DockPanel.Dock="Bottom"
+                   Cursor="Hand"
+                   MouseDown="VersionTextBlock_MouseDown"/>
+
+                <!-- 🔺 Header -->
+                <TextBlock Text="ForgePLM"
+                   Foreground="White"
+                   FontSize="26"
+                   FontWeight="Bold"
+                   Margin="20,20,20,30"
+                   DockPanel.Dock="Top"/>
+
+                <!-- 🔘 Navigation -->
                 <StackPanel Margin="12">
                     <Button x:Name="DashboardButton"
                     Content="Dashboard"
@@ -31,30 +45,32 @@
                     Style="{StaticResource SidebarButtonStyle}"
                     Click="DashboardButton_Click"/>
 
-                                <Button x:Name="CrmLiteButton"
+                    <Button x:Name="CrmLiteButton"
                     Content="CRM Lite"
                     Height="44"
                     Margin="0,0,0,10"
                     Style="{StaticResource SidebarButtonStyle}"
                     Click="CrmLiteButton_Click"/>
 
-                                <Button x:Name="EcoBuilderButton"
+                    <Button x:Name="EcoBuilderButton"
                     Content="ECO Builder"
                     Height="44"
                     Margin="0,0,0,10"
                     Style="{StaticResource SidebarButtonStyle}"
                     Click="EcoBuilderButton_Click"/>
 
-                                <Button x:Name="PartNumberManagerButton"
+                    <Button x:Name="PartNumberManagerButton"
                     Content="Part Number Manager"
                     Height="44"
                     Margin="0,0,0,10"
                     Style="{StaticResource SidebarButtonStyle}"
                     Click="PartNumberManagerButton_Click"/>
-
                 </StackPanel>
+                
+
             </DockPanel>
         </Border>
+        
 
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
