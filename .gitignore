@@ -3,6 +3,25 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# ForgePLM additions
+
+# App config / secrets
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+
+# Environment variables
+*.env
+
+# Logs
+logs/
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+
 # User-specific files
 *.rsuser
 *.suo
