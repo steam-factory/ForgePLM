@@ -10,7 +10,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\ForgePLM.Runtime\ForgePLM.Runtime.csproj" />
-		<ProjectReference Include="..\ForgePLM\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
+		<ProjectReference Include="..\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

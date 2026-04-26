@@ -3,11 +3,11 @@
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="ForgePLM/ForgePLM.csproj" Id="a4d7d288-90c5-4fca-aa57-9a416e75ce72" />
+  <Project Path="src/ForgePLM.Administrator/ForgePLM.Administrator.csproj" />
+  <Project Path="src/ForgePLM.Contracts/ForgePLM.Contracts.csproj" />
   <Project Path="src/ForgePLM.Runtime.Host/ForgePLM.Runtime.Host.csproj" Id="68fd1185-1578-4795-a2ef-0e997bf6e292" />
   <Project Path="src/ForgePLM.Runtime/ForgePLM.Runtime.csproj" Id="790211cb-20d1-4478-b4fb-4cde12632221" />
   <Project Path="src/ForgePLM.SolidWorks.Addin/ForgePLM.SolidWorks.Addin.csproj" Id="bdac6cb1-621f-4285-bf17-22b073cf44a4">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
-  <Project Path="src/ForgePLM/ForgePLM.Contracts/ForgePLM.Contracts.csproj" />
 </Solution>

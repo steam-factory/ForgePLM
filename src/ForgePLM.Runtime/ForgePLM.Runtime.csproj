@@ -16,7 +16,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\ForgePLM\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
+		<ProjectReference Include="..\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
