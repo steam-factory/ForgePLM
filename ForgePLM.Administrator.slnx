@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src/ForgePLM.Administrator/ForgePLM.Administrator.csproj" />
+  <Project Path="src/ForgePLM.Contracts/ForgePLM.Contracts.csproj" />
+</Solution>
