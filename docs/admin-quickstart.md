@@ -1,58 +1,112 @@
+# ForgePLM Quick Start
 
-## Setup
+This guide will get you up and running with ForgePLM in just a few minutes.
 
-From the repository root:
+---
+
+## 🧠 Solution Overview
+
+ForgePLM is split into two primary solutions:
+
+- **Administrator Dashboard**  
+
+ForgePLM.Administrator.slnx
+
+UI for managing customers, projects, ECOs, and parts.
+
+- **SolidWorks Add-In + Runtime**  
+
+ForgePLM.SolidWorks.Addin.slnx
+
+Handles runtime services and integrates directly with SolidWorks.
+
+---
+
+## ⚙️ Setup
+
+From the repository root, run:
 
 ```powershell
 .\scripts\setup.ps1
 ```
 
-If PowerShell blocks the script
+This will:
 
-You may see a message about script execution being disabled.
+download nuget.exe if needed
+restore all dependencies (including legacy packages)
+build all solutions
+⚠️ If PowerShell blocks the script
+
+You may see:
+```powershell
+running scripts is disabled on this system
+```
+
 Run the following once per session:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\scripts\setup.ps1
 ```
+
 This does not change your system settings. It only applies to the current PowerShell window.
 
+🚀 Running ForgePLM
+🖥️ Administrator Dashboard
 
+Open:
 
-## Run the Runtime API
+ForgePLM.Administrator.slnx
+Press F5
 
-1. Open the solution in Visual Studio
+✅ A full-screen dashboard will appear
 
-2. Set the startup project:
-   - Right-click `ForgePLM.Runtime.Host`
-   - Select **Set as Startup Project**
+⚙️ Runtime + SolidWorks Add-In
 
-3. Press **F5** or click **Run**
+Open:
 
-4. Confirm the API is running:
-   - Navigate to:
-     ```
-     https://localhost:<port>/api/health
-     ```
+ForgePLM.SolidWorks.Addin.slnx
+Set startup project:
+Right-click ForgePLM.Runtime.Host
+Select Set as Startup Project
+Press F5
 
-You should receive a successful response indicating the runtime is active.
+✅ You should see:
 
-## Running ForgePLM
+A system tray icon (runtime is active)
+The ForgePLM Add-In available inside SolidWorks (right-side task pane)
+🔍 Verify Runtime
 
-### Runtime API
+Once running, confirm the API is active:
 
-1. Open the solution in Visual Studio
-2. Set `ForgePLM.Runtime.Host` as the startup project
-3. Run the application
+https://localhost:<port>/swagger
 
-### ⚠️ Administrator Mode (when required)
+default port is 5269
 
-Some components (particularly the SolidWorks Add-In and COM integration) may require Visual Studio to be run as Administrator.
+You should receive a successful response.
 
-If you encounter issues such as:
-- Add-In failing to load in SolidWorks
-- COM registration errors
-- Access denied errors
+⚠️ Administrator Mode (when required)
 
-Try restarting Visual Studio in Administrator mode.
+Some components (especially the SolidWorks Add-In and COM registration) may require Visual Studio to run as Administrator.
+
+If you encounter:
+
+Add-In not appearing in SolidWorks
+COM registration errors
+Access denied issues
+
+👉 Restart Visual Studio as Administrator
+
+💡 Tips
+Make sure the correct Startup Project is selected before running
+Runtime must be running for the Add-In to function properly
+Use code . to quickly explore the repository in VS Code
+🧪 Status
+
+ForgePLM is currently in an early but functional state:
+
+Runtime API: ✅ working
+Administrator UI: ✅ working
+SolidWorks Add-In: ✅ working
+
+Welcome to ForgePLM 🚀
