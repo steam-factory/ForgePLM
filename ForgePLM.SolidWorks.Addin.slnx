@@ -3,7 +3,6 @@
     <Platform Name="Any CPU" />
     <Platform Name="x64" />
   </Configurations>
-  <Project Path="src/ForgePLM.Administrator/ForgePLM.Administrator.csproj" />
   <Project Path="src/ForgePLM.Contracts/ForgePLM.Contracts.csproj" />
   <Project Path="src/ForgePLM.Runtime.Host/ForgePLM.Runtime.Host.csproj" Id="68fd1185-1578-4795-a2ef-0e997bf6e292" />
   <Project Path="src/ForgePLM.Runtime/ForgePLM.Runtime.csproj" Id="790211cb-20d1-4478-b4fb-4cde12632221" />

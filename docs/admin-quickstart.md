@@ -51,7 +51,55 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 This does not change your system settings. It only applies to the current PowerShell window.
 
-🚀 Running ForgePLM
+## 🗄️ Database Setup
+
+ForgePLM uses SQL Server.
+
+1. Create the database
+
+Create a new SQL Server database named:
+
+
+ForgePLM
+
+
+2. Run the schema script
+
+From SQL Server Management Studio, run:
+
+db/schema/001_create_schema.sql
+
+This creates the ForgePLM tables, views, sequences, constraints, and stored procedures.
+
+3. Run the seed script
+
+Then run:
+
+db/seed/001_seed_reference_data.sql
+
+This inserts required static reference data, such as part categories.
+
+4. Configure the connection string
+
+Create a local app settings file for the Runtime Host:
+
+src/ForgePLM.Runtime.Host/appsettings.Development.json
+
+Example:
+
+{
+  "ConnectionStrings": {
+    "ForgePLMDb": "Server=YOUR_SERVER_NAME;Database=ForgePLM;Trusted_Connection=True;TrustServerCertificate=True;"
+  }
+}
+
+Do not commit this file. It is ignored by Git.
+
+> The database scripts intentionally do not include customer, project, ECO, part, revision, or artifact data.
+
+
+## Running ForgePLM
+
 🖥️ Administrator Dashboard
 
 Open:
