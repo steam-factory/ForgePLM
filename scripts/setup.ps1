@@ -2,6 +2,13 @@
 # Restores NuGet packages and builds the main ForgePLM solutions.
 
 $ErrorActionPreference = "Stop"
+$example = "src/ForgePLM.Runtime.Host/appsettings.example.json"
+$target = "src/ForgePLM.Runtime.Host/appsettings.json"
+
+if (!(Test-Path $target)) {
+    Write-Host "Creating local appsettings.json from template..." -ForegroundColor Yellow
+    Copy-Item $example $target
+}
 
 Write-Host "ForgePLM setup starting..." -ForegroundColor Cyan
 

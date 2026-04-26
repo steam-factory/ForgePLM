@@ -9,6 +9,8 @@
 # App config / secrets
 appsettings.json
 appsettings.*.json
+**/appsettings.json
+**/appsettings.*.json
 !appsettings.example.json
 
 # Environment variables
