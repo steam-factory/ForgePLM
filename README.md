@@ -27,4 +27,8 @@ ForgePLM prioritizes clarity, traceability, and controlled engineering release d
 - `db/schema` — SQL Server schema scripts
 - `db/seed` — static reference data
 - `docs` — setup and usage documentation
+
+
+## IMPORTANT
+> ⚠️ Important: Set `ForgePLM.Runtime.Host` as the startup project before running.
 >>>>>>> 882d1ff2a985b82e2262dcac854554ed5df554d1
