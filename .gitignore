@@ -3,7 +3,8 @@ bin/
 obj/ 
 artifacts/ 
 exports/ 
-logs/ 
+logs/
+**/.vs/
 .vs/
 # Local deployment output
 run/
@@ -12,3 +13,9 @@ run/
 *.suo 
 *.log 
 
+packages/
+**/packages/
+
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
