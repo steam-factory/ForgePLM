@@ -1,3 +1,10 @@
+## Build the Admin Solution
+
+From the cloned repository root:
+
+```powershell
+dotnet build .\src\ForgePLM\ForgePLM.slnx
+
 ## Run the Runtime API
 
 1. Open the solution in Visual Studio
@@ -15,6 +22,7 @@
      ```
 
 You should receive a successful response indicating the runtime is active.
+
 ## Running ForgePLM
 
 ### Runtime API
