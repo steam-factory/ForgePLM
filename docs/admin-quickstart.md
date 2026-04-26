@@ -4,11 +4,11 @@
 
 From the cloned repository root:
 
-```powershell
+```md
 
 dotnet build .\src\ForgePLM\ForgePLM.slnx
 
-```
+```powershell
 
 
 ## Run the Runtime API
