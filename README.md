@@ -28,6 +28,8 @@ ForgePLM prioritizes clarity, traceability, and controlled engineering release d
 - `db/seed` — static reference data
 - `docs` — setup and usage documentation
 
+> 💡 Tip: If you're using VS Code, open the repo with `code .` before running setup.
+
 
 ## IMPORTANT
 > ⚠️ Important: Set `ForgePLM.Runtime.Host` as the startup project before running.
