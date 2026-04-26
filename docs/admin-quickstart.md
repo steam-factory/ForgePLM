@@ -1,3 +1,4 @@
+```md
 ## Build the Admin Solution
 
 From the cloned repository root:
