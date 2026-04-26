@@ -21,6 +21,7 @@ logs/
 # OS junk
 .DS_Store
 Thumbs.db
+exports/
 
 
 # User-specific files
