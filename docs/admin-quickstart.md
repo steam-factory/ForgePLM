@@ -1,10 +1,15 @@
-```powershell
+
 ## Build the Admin Solution
+
 
 From the cloned repository root:
 
-```
+```powershell
+
 dotnet build .\src\ForgePLM\ForgePLM.slnx
+
+```
+
 
 ## Run the Runtime API
 
