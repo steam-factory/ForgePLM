@@ -12,9 +12,10 @@ If PowerShell blocks the script
 You may see a message about script execution being disabled.
 Run the following once per session:
 
+```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\scripts\setup.ps1
-
+```
 This does not change your system settings. It only applies to the current PowerShell window.
 
 
