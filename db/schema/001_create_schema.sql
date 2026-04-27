@@ -1623,16 +1623,23 @@ BEGIN
     );
 END;
 
-
-CREATE OR ALTER PROCEDURE dbo.usp_CreateProject
+USE [ForgePLM]
+GO
+/****** Object:  StoredProcedure [dbo].[usp_CreateProject]    Script Date: 4/27/2026 2:54:37 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER PROCEDURE [dbo].[usp_CreateProject]
     @customer_id INT,
-    @project_code NVARCHAR(25),
+    @project_code NVARCHAR(25), -- base code (e.g. VRAD0)
     @project_name NVARCHAR(200),
     @project_description NVARCHAR(MAX) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Validate customer
     IF NOT EXISTS (
         SELECT 1 FROM dbo.customers
         WHERE customer_id = @customer_id
@@ -1642,17 +1649,42 @@ BEGIN
         THROW 50020, 'Invalid or inactive customer.', 1;
     END;
 
-    IF EXISTS (
-        SELECT 1 FROM dbo.projects
-        WHERE project_code = @project_code
-    )
+    DECLARE @next_project_seq INT;
+    DECLARE @final_project_code NVARCHAR(50);
+
+    -- Get next sequence per customer (LOCKED)
+    SELECT @next_project_seq = ISNULL(MAX(project_seq), 0) + 1
+    FROM dbo.projects WITH (UPDLOCK, HOLDLOCK)
+    WHERE customer_id = @customer_id;
+    
+    IF @project_code LIKE '%-%'
     BEGIN
-        THROW 50021, 'Project code already exists.', 1;
+        SET @project_code = LEFT(@project_code, CHARINDEX('-', @project_code) - 1);
     END;
 
+    IF LEN(@project_code) < 3
+    BEGIN
+        THROW 50022, 'Invalid base project code after normalization.', 1;
+    END;
+
+    -- Build formatted project code (e.g. VRAD0-00001)
+    SET @final_project_code = 
+        @project_code + '-' + RIGHT('00000' + CAST(@next_project_seq AS VARCHAR(5)), 5);
+
+    -- Ensure final code is unique
+    IF EXISTS (
+        SELECT 1 FROM dbo.projects
+        WHERE project_code = @final_project_code
+    )
+    BEGIN
+        THROW 50021, 'Generated project code already exists.', 1;
+    END;
+
+    -- Insert
     INSERT INTO dbo.projects
     (
         customer_id,
+        project_seq,
         project_code,
         project_name,
         project_description,
@@ -1662,13 +1694,23 @@ BEGIN
     VALUES
     (
         @customer_id,
-        @project_code,
+        @next_project_seq,
+        @final_project_code,
         @project_name,
         @project_description,
         1,
         SYSUTCDATETIME()
     );
-END;
 
-ALTER TABLE dbo.projects
-ADD project_description NVARCHAR(MAX) NULL;
+    -- Return inserted record
+    SELECT
+        project_id,
+        customer_id,
+        project_seq,
+        project_code,
+        project_name,
+        project_description,
+        is_active
+    FROM dbo.projects
+    WHERE project_code = @final_project_code;
+END;
