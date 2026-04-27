@@ -52,6 +52,7 @@ namespace ForgePLM.SolidWorks.Addin
         private ComboBox _cmbCustomer;
         private ComboBox _cmbProject;
         private ComboBox _cmbEco;
+        private Button _btnRefresh;
 
         // ECO contents
         private GroupBox _ecoGroup;
@@ -136,7 +137,7 @@ namespace ForgePLM.SolidWorks.Addin
             _contextLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
-                ColumnCount = 2,
+                ColumnCount = 3,
                 RowCount = 3,
                 Padding = new Padding(8),
                 AutoSize = true
@@ -144,6 +145,7 @@ namespace ForgePLM.SolidWorks.Addin
 
             _contextLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70));
             _contextLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            _contextLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 82));
 
             _cmbCustomer = new ComboBox
             {
@@ -163,6 +165,15 @@ namespace ForgePLM.SolidWorks.Addin
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
 
+            _btnRefresh = new Button
+            {
+                Text = "Refresh",
+                Width = 74,
+                Height = 24,
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                Margin = new Padding(8, 0, 0, 0)
+            };
+
             _contextLayout.Controls.Add(new Label { Text = "Customer", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
             _contextLayout.Controls.Add(_cmbCustomer, 1, 0);
 
@@ -171,6 +182,8 @@ namespace ForgePLM.SolidWorks.Addin
 
             _contextLayout.Controls.Add(new Label { Text = "ECO", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 2);
             _contextLayout.Controls.Add(_cmbEco, 1, 2);
+            _contextLayout.Controls.Add(_btnRefresh, 2, 0);
+            _contextLayout.SetRowSpan(_btnRefresh, 3);
 
             _contextGroup.Controls.Add(_contextLayout);
         }
@@ -353,6 +366,7 @@ namespace ForgePLM.SolidWorks.Addin
             _activeFileLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             _activeFileLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             _activeFileLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            _activeFileLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             _activeFileLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             _lblActiveFileValue = new Label { AutoSize = true };
@@ -382,14 +396,16 @@ namespace ForgePLM.SolidWorks.Addin
             _activeFileLayout.Controls.Add(new Label { Text = "Project", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 4);
             _activeFileLayout.Controls.Add(_lblActiveProjectValue, 1, 4);
 
-            _activeFileLayout.Controls.Add(new Label { Text = "Note", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 4);
-            _activeFileLayout.Controls.Add(_lblActiveNoteValue, 1, 4);
+            _activeFileLayout.Controls.Add(new Label { Text = "Note", AutoSize = true, Anchor = AnchorStyles.Left }, 0, 5);
+            _activeFileLayout.Controls.Add(_lblActiveNoteValue, 1, 5);
 
             _activeFileGroup.Controls.Add(_activeFileLayout);
         }
 
         private void WireEvents()
         {
+            _btnRefresh.Click += async (sender, args) => await RefreshForgePlmDataAsync(true);
+
             _cmbCustomer.SelectedIndexChanged += async (_, __) =>
             {
                 if (_isLoadingContext) return;
@@ -420,14 +436,18 @@ namespace ForgePLM.SolidWorks.Addin
 
         private async Task LoadInitialContextAsync()
         {
+            await RefreshForgePlmDataAsync(false);
+        }
+
+        private async Task RefreshForgePlmDataAsync(bool showConfirmation)
+        {
             try
             {
-                //MessageBox.Show("LoadInitialContextAsync fired.", "ForgePLM");
+                SetRefreshButtonBusy(true);
                 _isLoadingContext = true;
 
-                _cmbCustomer.Items.Clear();
-                _cmbProject.Items.Clear();
-                _cmbEco.Items.Clear();
+                ClearContextData();
+                InitializeFilterControls();
 
                 _customers = await _api.GetCustomersAsync();
 
@@ -436,24 +456,17 @@ namespace ForgePLM.SolidWorks.Addin
                     _cmbCustomer.Items.Add($"{customer.CustomerCode} - {customer.CustomerName}");
                 }
 
-                //MessageBox.Show($"Customers loaded: {_customers.Count}", "ForgePLM");
+                // Intentional hard reset: after refresh, user reselects Customer -> Project -> ECO.
+                _cmbCustomer.SelectedIndex = -1;
 
-                if (_cmbCustomer.Items.Count > 0)
+                if (showConfirmation)
                 {
-                    _cmbCustomer.SelectedIndex = 0;
+                    MessageBox.Show(
+                        "ForgePLM data refreshed. Please reselect Customer, Project, and ECO.",
+                        "ForgePLM Refresh",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
                 }
-
-                _cmbCategoryFilter.Items.Clear();
-                _cmbCategoryFilter.Items.Add("All");
-                _cmbCategoryFilter.SelectedIndex = 0;
-
-                _cmbPartSort.Items.Clear();
-                _cmbPartSort.Items.AddRange(new object[] { "Ascending", "Descending" });
-                _cmbPartSort.SelectedIndex = 0;
-
-                _cmbRevSort.Items.Clear();
-                _cmbRevSort.Items.AddRange(new object[] { "Ascending", "Descending" });
-                _cmbRevSort.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
@@ -466,12 +479,62 @@ namespace ForgePLM.SolidWorks.Addin
                     inner = inner.InnerException;
                 }
 
-                MessageBox.Show($"Failed to load customers:\n{message}", "ForgePLM");
+                MessageBox.Show($"Failed to refresh ForgePLM data:\n{message}", "ForgePLM");
             }
             finally
             {
                 _isLoadingContext = false;
+                SetRefreshButtonBusy(false);
+                EvaluateActiveDocument();
             }
+        }
+
+        private void SetRefreshButtonBusy(bool isBusy)
+        {
+            if (_btnRefresh == null)
+                return;
+
+            _btnRefresh.Enabled = !isBusy;
+            _btnRefresh.Text = isBusy ? "..." : "Refresh";
+        }
+
+        private void ClearContextData()
+        {
+            _customers = new List<CustomerDto>();
+            _projects = new List<ProjectDto>();
+            _ecos = new List<EcoDto>();
+
+            _cmbCustomer.Items.Clear();
+            _cmbProject.Items.Clear();
+            _cmbEco.Items.Clear();
+
+            ClearEcoRows();
+        }
+
+        private void ClearEcoRows()
+        {
+            _allEcoRows = new List<EcoRowViewModel>();
+            _ecoRows = new BindingList<EcoRowViewModel>(_allEcoRows);
+
+            if (_gridEcoContents != null)
+            {
+                _gridEcoContents.DataSource = _ecoRows;
+            }
+        }
+
+        private void InitializeFilterControls()
+        {
+            _cmbCategoryFilter.Items.Clear();
+            _cmbCategoryFilter.Items.Add("All");
+            _cmbCategoryFilter.SelectedIndex = 0;
+
+            _cmbPartSort.Items.Clear();
+            _cmbPartSort.Items.AddRange(new object[] { "Ascending", "Descending" });
+            _cmbPartSort.SelectedIndex = 0;
+
+            _cmbRevSort.Items.Clear();
+            _cmbRevSort.Items.AddRange(new object[] { "Ascending", "Descending" });
+            _cmbRevSort.SelectedIndex = 0;
         }
 
         private async Task LoadProjectsForSelectedCustomerAsync()
@@ -482,10 +545,10 @@ namespace ForgePLM.SolidWorks.Addin
 
                 _cmbProject.Items.Clear();
                 _cmbEco.Items.Clear();
+                _projects = new List<ProjectDto>();
+                _ecos = new List<EcoDto>();
 
-                _allEcoRows = new List<EcoRowViewModel>();
-                _ecoRows = new BindingList<EcoRowViewModel>(_allEcoRows);
-                _gridEcoContents.DataSource = _ecoRows;
+                ClearEcoRows();
 
                 var customer = GetSelectedCustomer();
                 if (customer == null)
@@ -498,10 +561,7 @@ namespace ForgePLM.SolidWorks.Addin
                     _cmbProject.Items.Add($"{project.ProjectCode} - {project.ProjectName}");
                 }
 
-                if (_cmbProject.Items.Count > 0)
-                {
-                    _cmbProject.SelectedIndex = 0;
-                }
+                _cmbProject.SelectedIndex = -1;
             }
             catch (Exception ex)
             {
@@ -520,10 +580,9 @@ namespace ForgePLM.SolidWorks.Addin
                 _isLoadingContext = true;
 
                 _cmbEco.Items.Clear();
+                _ecos = new List<EcoDto>();
 
-                _allEcoRows = new List<EcoRowViewModel>();
-                _ecoRows = new BindingList<EcoRowViewModel>(_allEcoRows);
-                _gridEcoContents.DataSource = _ecoRows;
+                ClearEcoRows();
 
                 var project = GetSelectedProject();
                 if (project == null)
@@ -536,10 +595,7 @@ namespace ForgePLM.SolidWorks.Addin
                     _cmbEco.Items.Add($"{eco.EcoNumber} [{eco.EcoState}]");
                 }
 
-                if (_cmbEco.Items.Count > 0)
-                {
-                    _cmbEco.SelectedIndex = 0;
-                }
+                _cmbEco.SelectedIndex = -1;
             }
             catch (Exception ex)
             {
@@ -1125,6 +1181,7 @@ namespace ForgePLM.SolidWorks.Addin
                 _lblActiveStateValue.Text = "None";
                 _lblActivePartValue.Text = "—";
                 _lblActiveRevValue.Text = "—";
+                _lblActiveProjectValue.Text = "—";
                 _lblActiveNoteValue.Text = string.Empty;
                 return;
             }
