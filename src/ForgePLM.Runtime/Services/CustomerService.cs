@@ -1,6 +1,7 @@
 ﻿using ForgePLM.Contracts.Customers;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using System.Data;
 
 namespace ForgePLM.Runtime.Services
 {
@@ -12,6 +13,22 @@ namespace ForgePLM.Runtime.Services
         {
             _connectionString = configuration.GetConnectionString("ForgePlmDb")
                 ?? throw new InvalidOperationException("Missing connection string: ForgePlmDb");
+        }
+        public async Task CreateCustomerAsync(CustomerDto customer)
+        {
+            await using var connection = new SqlConnection(_connectionString);
+
+            await using var command = new SqlCommand("dbo.usp_CreateCustomer", connection);
+            command.CommandType = CommandType.StoredProcedure;
+
+            command.Parameters.AddWithValue("@customer_code", customer.CustomerCode);
+            command.Parameters.AddWithValue("@customer_name", customer.CustomerName);
+            command.Parameters.AddWithValue("@contact_name", (object?)customer.ContactName ?? DBNull.Value);
+            command.Parameters.AddWithValue("@contact_email", (object?)customer.ContactEmail ?? DBNull.Value);
+            command.Parameters.AddWithValue("@contact_phone", (object?)customer.ContactPhone ?? DBNull.Value);
+
+            await connection.OpenAsync();
+            await command.ExecuteNonQueryAsync();
         }
 
         public async Task<List<CustomerDto>> GetCustomersAsync()
