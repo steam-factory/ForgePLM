@@ -7,5 +7,7 @@ namespace ForgePLM.Runtime.Services
     {
         Task<List<EcoDto>> GetEcosByProjectAsync(int projectId);
         Task<List<RevisionDto>> GetEcoContentsAsync(int ecoId);
+
+        Task<EcoDto> CreateEcoAsync(CreateEcoRequest request);
     }
 }

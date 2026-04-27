@@ -3,6 +3,7 @@ using ForgePLM.Contracts.Revisions;
 using ForgePLM.Runtime.Common;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using System.Data;
 using System.IO;
 
 namespace ForgePLM.Runtime.Services
@@ -16,7 +17,38 @@ namespace ForgePLM.Runtime.Services
             _connectionString = configuration.GetConnectionString("ForgePlmDb")
                 ?? throw new InvalidOperationException("Missing connection string: ForgePlmDb");
         }
+        public async Task<EcoDto> CreateEcoAsync(CreateEcoRequest request)
+        {
+            await using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
 
+            await using var cmd = new SqlCommand("dbo.usp_CreateEco", conn);
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            cmd.Parameters.AddWithValue("@project_code", request.ProjectCode);
+            cmd.Parameters.AddWithValue("@eco_title", request.EcoTitle);
+            cmd.Parameters.AddWithValue("@eco_description", (object?)request.EcoDescription ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@release_level", request.ReleaseLevel);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            if (await reader.ReadAsync())
+            {
+                return new EcoDto(
+                    EcoId: reader.GetInt32(reader.GetOrdinal("eco_id")),
+                    EcoNumberInt: reader.GetInt32(reader.GetOrdinal("eco_number_int")),
+                    EcoNumber: reader["eco_number"] as string ?? string.Empty,
+                    ProjectId: reader.GetInt32(reader.GetOrdinal("project_id")),
+                    EcoTitle: reader["eco_title"] as string ?? string.Empty,
+                    EcoDescription: reader["eco_description"] as string,
+                    ReleaseLevel: reader.GetInt32(reader.GetOrdinal("release_level")),
+                    EcoState: reader["eco_state"] as string ?? string.Empty,
+                    CreatedAt: reader.GetDateTime(reader.GetOrdinal("created_at"))
+                );
+            }
+
+            throw new InvalidOperationException("Create ECO returned no row.");
+        }
         public async Task<List<EcoDto>> GetEcosByProjectAsync(int projectId)
         {
             var results = new List<EcoDto>();

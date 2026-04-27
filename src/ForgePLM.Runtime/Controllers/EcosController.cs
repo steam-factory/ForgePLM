@@ -1,4 +1,5 @@
-﻿using ForgePLM.Runtime.Services;
+﻿using ForgePLM.Contracts.Eco;
+using ForgePLM.Runtime.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ForgePLM.Runtime.Controllers
@@ -19,6 +20,13 @@ namespace ForgePLM.Runtime.Controllers
         {
             var result = await _ecoService.GetEcoContentsAsync(ecoId);
             return Ok(result);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<EcoDto>> CreateEco([FromBody] CreateEcoRequest request)
+        {
+            var eco = await _ecoService.CreateEcoAsync(request);
+            return Ok(eco);
         }
     }
 }

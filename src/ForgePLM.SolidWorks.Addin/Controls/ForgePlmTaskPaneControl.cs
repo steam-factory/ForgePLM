@@ -962,7 +962,7 @@ namespace ForgePLM.SolidWorks.Addin
                     return string.Empty;
             }
         }
-        private void ShowSaveToVaultDialog(EcoRowViewModel row)
+        private async void ShowSaveToVaultDialog(EcoRowViewModel row)
         {
             var model = GetActiveModel();
             if (model == null)
@@ -995,8 +995,10 @@ namespace ForgePLM.SolidWorks.Addin
                 string targetDirectory = Path.GetDirectoryName(fullTargetPath);
 
                 if (!string.IsNullOrWhiteSpace(targetDirectory))
-                {
+                { await Task.Delay(1500);
                     Directory.CreateDirectory(targetDirectory);
+                    // Give Windows/PDM vault view a moment to recognize the new folder
+                    await Task.Delay(1500);
                 }
             }
             catch (Exception ex)

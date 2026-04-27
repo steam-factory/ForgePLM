@@ -159,7 +159,12 @@ namespace ForgePLM.Administrator.Services
                 request,
                 cancellationToken);
 
-            response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new HttpRequestException(
+                    $"Create ECO failed: {(int)response.StatusCode} {response.ReasonPhrase}\n{body}");
+            }
 
             var eco = await response.Content.ReadFromJsonAsync<EcoDto>(
                 cancellationToken: cancellationToken);
