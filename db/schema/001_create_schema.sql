@@ -705,11 +705,15 @@ BEGIN
 END;
 GO
 /****** Object:  StoredProcedure [dbo].[usp_CreateEco]    ******/
+
+USE [ForgePLM]
+GO
+/****** Object:  StoredProcedure [dbo].[usp_CreateEco]    Script Date: 4/27/2026 3:46:00 AM ******/
 SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROCEDURE [dbo].[usp_CreateEco]
+ALTER PROCEDURE [dbo].[usp_CreateEco]
 (
     @project_code     NVARCHAR(50),
     @eco_title        NVARCHAR(255),
@@ -767,7 +771,7 @@ BEGIN
     FROM dbo.eco
     WHERE eco_id = SCOPE_IDENTITY();
 END;
-GO
+
 /****** Object:  StoredProcedure [dbo].[usp_CreatePartNumber]    ******/
 SET ANSI_NULLS ON
 GO
