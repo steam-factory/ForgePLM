@@ -1,5 +1,4 @@
 # ForgePLM Quick Start
-
 This guide will get you up and running with ForgePLM quickly.
 
 > ⚠️ Before running ForgePLM, complete the Configuration step below.
@@ -106,7 +105,7 @@ db/seed/001_seed_reference_data.sql
 ### Start Runtime
 
 ```powershell
-.un\ForgePLM.Runtime.Host\ForgePLM.Runtime.Host.exe
+run\ForgePLM.Runtime.Host\ForgePLM.Runtime.Host.exe
 ```
 
 ### Administrator Dashboard
@@ -165,5 +164,12 @@ Run Visual Studio as Administrator if needed for:
 - SolidWorks Add-In: ✅
 
 ---
+
+Welcome to ForgePLM 🚀
+PLM is currently in an early but functional state:
+
+Runtime API: ✅ working
+Administrator UI: ✅ working
+SolidWorks Add-In: ✅ working
 
 Welcome to ForgePLM 🚀
