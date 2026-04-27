@@ -1622,3 +1622,53 @@ BEGIN
         SYSUTCDATETIME()
     );
 END;
+
+
+CREATE OR ALTER PROCEDURE dbo.usp_CreateProject
+    @customer_id INT,
+    @project_code NVARCHAR(25),
+    @project_name NVARCHAR(200),
+    @project_description NVARCHAR(MAX) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM dbo.customers
+        WHERE customer_id = @customer_id
+          AND is_active = 1
+    )
+    BEGIN
+        THROW 50020, 'Invalid or inactive customer.', 1;
+    END;
+
+    IF EXISTS (
+        SELECT 1 FROM dbo.projects
+        WHERE project_code = @project_code
+    )
+    BEGIN
+        THROW 50021, 'Project code already exists.', 1;
+    END;
+
+    INSERT INTO dbo.projects
+    (
+        customer_id,
+        project_code,
+        project_name,
+        project_description,
+        is_active,
+        created_at
+    )
+    VALUES
+    (
+        @customer_id,
+        @project_code,
+        @project_name,
+        @project_description,
+        1,
+        SYSUTCDATETIME()
+    );
+END;
+
+ALTER TABLE dbo.projects
+ADD project_description NVARCHAR(MAX) NULL;

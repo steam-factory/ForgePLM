@@ -91,6 +91,7 @@ namespace ForgePLM.Administrator.Services
 
             response.EnsureSuccessStatusCode();
 
+
             var updated = await response.Content.ReadFromJsonAsync<PartNumberManagerItemDto>(
                 cancellationToken: cancellationToken);
 
@@ -106,7 +107,13 @@ namespace ForgePLM.Administrator.Services
                 request,
                 cancellationToken);
 
-            response.EnsureSuccessStatusCode();
+            //response.EnsureSuccessStatusCode();
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new HttpRequestException(
+                    $"Create project failed: {(int)response.StatusCode} {response.ReasonPhrase}\n{body}");
+            }
 
             var project = await response.Content.ReadFromJsonAsync<ProjectDto>(
                 cancellationToken: cancellationToken);

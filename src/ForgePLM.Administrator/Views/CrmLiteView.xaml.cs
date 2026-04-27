@@ -302,24 +302,19 @@ namespace ForgePLM.Administrator.Views
                     return;
                 }
 
-                var request = new CreateProjectRequest(
-                    CustomerId: _selectedCustomer.CustomerId,
-                    ProjectName: ProjectNameTextBox.Text.Trim(),
-                    IsActive: ProjectIsActiveCheckBox.IsChecked == true
-                );
-
                 ProjectDto savedProject;
 
                 if (_selectedProject is null)
                 {
                     var createRequest = new CreateProjectRequest(
                         CustomerId: _selectedCustomer.CustomerId,
+                        ProjectCode: ProjectCodeTextBox.Text.Trim(),
                         ProjectName: ProjectNameTextBox.Text.Trim(),
-                        IsActive: ProjectIsActiveCheckBox.IsChecked ?? true
+                        ProjectDescription: null
                     );
 
                     savedProject = await _apiClient.CreateProjectAsync(createRequest);
-                    MessageBox.Show("Project created.", "Success");
+                    //MessageBox.Show("Project created.", "Success");
                 }
                 else
                 {

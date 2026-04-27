@@ -10,6 +10,6 @@ public sealed record ProjectDto(
     int ProjectSeq,
     string ProjectCode,
     string ProjectName,
+    string? ProjectDescription,
     bool IsActive
 );
-
