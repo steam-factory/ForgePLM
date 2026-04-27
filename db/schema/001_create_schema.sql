@@ -1573,3 +1573,52 @@ BEGIN
     WHERE eco_number = @eco_number;
 END;
 GO
+
+
+USE [ForgePLM]
+GO
+/****** Object:  StoredProcedure [dbo].[usp_CreateCustomer]    Script Date: 4/27/2026 12:24:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+ALTER   PROCEDURE [dbo].[usp_CreateCustomer]
+    @customer_code NVARCHAR(25),
+    @customer_name NVARCHAR(200),
+    @contact_name NVARCHAR(200) = NULL,
+    @contact_email NVARCHAR(200) = NULL,
+    @contact_phone NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.customers
+        WHERE customer_code = @customer_code
+    )
+    BEGIN
+        THROW 50010, 'Customer code already exists.', 1;
+    END;
+
+    INSERT INTO dbo.customers
+    (
+        customer_code,
+        customer_name,
+        contact_name,
+        contact_email,
+        contact_phone,
+        is_active,
+        created_at
+    )
+    VALUES
+    (
+        @customer_code,
+        @customer_name,
+        @contact_name,
+        @contact_email,
+        @contact_phone,
+        1,
+        SYSUTCDATETIME()
+    );
+END;
