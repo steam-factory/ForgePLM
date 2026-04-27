@@ -41,4 +41,42 @@ Write-Host "Building ForgePLM SolidWorks Add-In solution..." -ForegroundColor Cy
 dotnet build ".\ForgePLM.SolidWorks.Addin.slnx"
 
 Write-Host ""
+Write-Host "Publishing ForgePLM Runtime Host..." -ForegroundColor Cyan
+
+$root = Resolve-Path "$PSScriptRoot\.."
+$runtimePublishPath = Join-Path $root "run\ForgePLM.Runtime.Host"
+
+New-Item -ItemType Directory -Force -Path $runtimePublishPath | Out-Null
+
+dotnet publish "src\ForgePLM.Runtime.Host\ForgePLM.Runtime.Host.csproj" `
+    -c Release `
+    -o $runtimePublishPath
+
+if (Test-Path (Join-Path $runtimePublishPath "ForgePLM.Runtime.Host.exe")) {
+    Write-Host "✔ Runtime Host published to: $runtimePublishPath" -ForegroundColor Green
+} else {
+    Write-Host "✖ Runtime Host publish did not produce expected EXE" -ForegroundColor Red
+}
+
+
+Write-Host ""
+Write-Host "Publishing ForgePLM Administrator..." -ForegroundColor Cyan
+
+# Get repo root (where script is being run)
+$root = Get-Location
+
+# Define output path
+$publishPath = Join-Path $root "run\ForgePLM.Administrator"
+
+# Ensure directory exists
+New-Item -ItemType Directory -Force -Path $publishPath | Out-Null
+
+# Publish the Administrator project
+dotnet publish "src/ForgePLM.Administrator" `
+    -c Release `
+    -o $publishPath
+
+Write-Host "Administrator published to: $publishPath" -ForegroundColor Green
+
+Write-Host ""
 Write-Host "ForgePLM setup complete." -ForegroundColor Green
