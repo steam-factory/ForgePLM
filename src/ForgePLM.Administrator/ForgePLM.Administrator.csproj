@@ -41,6 +41,42 @@
 	 <ItemGroup>
 		 <Compile Include="obj\BuildInfo.g.cs" Visible="false" />
 	 </ItemGroup>
+
+
+	 <ItemGroup>
+	   <COMReference Include="SldWorks">
+	     <WrapperTool>tlbimp</WrapperTool>
+	     <VersionMinor>0</VersionMinor>
+	     <VersionMajor>33</VersionMajor>
+	     <Guid>83a33d31-27c5-11ce-bfd4-00400513bb57</Guid>
+	     <Lcid>0</Lcid>
+	     <Isolated>false</Isolated>
+	     <EmbedInteropTypes>true</EmbedInteropTypes>
+	   </COMReference>
+	   <COMReference Include="SwConst">
+	     <WrapperTool>tlbimp</WrapperTool>
+	     <VersionMinor>0</VersionMinor>
+	     <VersionMajor>33</VersionMajor>
+	     <Guid>4687f359-55d0-4cd3-b6cf-2eb42c11f989</Guid>
+	     <Lcid>0</Lcid>
+	     <Isolated>false</Isolated>
+	     <EmbedInteropTypes>true</EmbedInteropTypes>
+	   </COMReference>
+	   <COMReference Include="SwCommands">
+	     <WrapperTool>tlbimp</WrapperTool>
+	     <VersionMinor>0</VersionMinor>
+	     <VersionMajor>33</VersionMajor>
+	     <Guid>0ac1de9f-3fbc-4c25-868d-7d4e9139cce0</Guid>
+	     <Lcid>0</Lcid>
+	     <Isolated>false</Isolated>
+	     <EmbedInteropTypes>true</EmbedInteropTypes>
+	   </COMReference>
+	 </ItemGroup>
+
+
+	 <ItemGroup>
+	   <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+	 </ItemGroup>
 	 <Target Name="WriteBuildInfo" BeforeTargets="BeforeBuild">
       <PropertyGroup>
         <BuildTimestamp>$([System.DateTime]::Now.ToString("yyyy-MM-dd HH:mm"))</BuildTimestamp>
@@ -60,6 +96,7 @@
     <BuildInfoLines Include="    }" />
     <BuildInfoLines Include="}" />
   </ItemGroup>
+
 
   <WriteLinesToFile File="obj\BuildInfo.g.cs" Lines="@(BuildInfoLines)" Overwrite="true" />
 </Target>

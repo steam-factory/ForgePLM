@@ -1,4 +1,5 @@
-﻿using ForgePLM.Runtime.Data;
+﻿using ForgePLM.Contracts.System;
+using ForgePLM.Runtime.Data;
 using ForgePLM.Runtime.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,6 +47,9 @@ namespace ForgePLM.Runtime
             builder.Services.AddScoped<IPartCategoryService, PartCategoryService>();
             builder.Services.AddScoped<IPartService, PartService>();
             builder.Services.AddScoped<IPartManagerService, PartManagerService>();
+            builder.Services.Configure<VaultPathSettings>(
+            builder.Configuration.GetSection("Vault"));
+            builder.Services.AddScoped<IVaultPathResolver, VaultPathResolver>();
         }
 
         private static void ConfigurePipeline(WebApplication app, bool enableSwagger)
@@ -60,6 +64,7 @@ namespace ForgePLM.Runtime
 
             app.MapControllers();
             app.MapGet("/health", () => Results.Ok("ForgePLM Runtime OK"));
+
         }
 
     }

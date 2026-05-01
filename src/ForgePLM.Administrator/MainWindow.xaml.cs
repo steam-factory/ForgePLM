@@ -76,5 +76,10 @@ namespace ForgePLM.Administrator
         {
             ShowView(new PartNumberManagerView());
         }
+
+        private void ArtifactGeneratorButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowView(new ArtifactGeneratorView());
+        }
     }
 }

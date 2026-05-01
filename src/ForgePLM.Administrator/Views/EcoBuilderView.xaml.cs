@@ -23,6 +23,7 @@ namespace ForgePLM.Administrator.Views
         private readonly List<PartCategoryDto> _partCategories = new();
         private readonly ObservableCollection<PartRevisionItemDto> _ecoContents = new();
         private readonly ObservableCollection<ProjectPartCurrentDto> _projectParts = new();
+        public ObservableCollection<ArtifactPartRowViewModel> EcoParts { get; }= new ObservableCollection<ArtifactPartRowViewModel>();
 
         private EcoDto? _selectedEco;
 

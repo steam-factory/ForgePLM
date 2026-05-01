@@ -1,15 +1,18 @@
 ﻿using ForgePLM.Contracts.Customers;
+using ForgePLM.Contracts.Eco;
 using ForgePLM.Contracts.PartCategories;
 using ForgePLM.Contracts.Parts;
 using ForgePLM.Contracts.Projects;
 using ForgePLM.Contracts.Requests;
+using ForgePLM.Contracts.Revisions;
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
+using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
-using ForgePLM.Contracts.Eco;
-using ForgePLM.Contracts.Revisions;
+using static System.Net.WebRequestMethods;
 
 namespace ForgePLM.Administrator.Services
 {
@@ -231,6 +234,18 @@ namespace ForgePLM.Administrator.Services
 
             return response ?? new List<ProjectPartCurrentDto>();
         }
+
+        public async Task<IReadOnlyList<PartRevisionItemDto>> GetArtifactEcoContentsAsync(
+            int ecoId,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _httpClient.GetFromJsonAsync<List<PartRevisionItemDto>>(
+                $"/api/ecos/{ecoId}/contents",
+                cancellationToken);
+
+            return response ?? new List<PartRevisionItemDto>();
+        }
+
 
 
         private sealed record CustomerEnvelope(

@@ -30,12 +30,16 @@ namespace ForgePLM.Runtime.Services
             cmd.Parameters.AddWithValue("@eco_id", request.EcoId);
             cmd.Parameters.AddWithValue("@category_code", request.CategoryCode);
             cmd.Parameters.AddWithValue("@description", (object?)request.Description ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("@document_type", request.DocumentType ?? "PART");
+            cmd.Parameters.AddWithValue("@document_type", request.DocumentType);
 
             await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
 
             if (!await reader.ReadAsync(cancellationToken))
                 throw new InvalidOperationException("CreatePart returned no result.");
+            
+
+
+
 
             return new PartRevisionItemDto(
                 PartId: reader.GetInt32(reader.GetOrdinal("part_id")),
@@ -49,8 +53,21 @@ namespace ForgePLM.Runtime.Services
                 CompositeCode: reader["composite_code"]?.ToString() ?? string.Empty,
                 Description: reader["part_description"]?.ToString() ?? string.Empty,
                 EcoNumber: reader["eco_number"]?.ToString() ?? string.Empty,
-                DocumentType: reader["document_type"]?.ToString() ?? "PART"
+                DocumentType: GetRequiredString(reader, "document_type")
             );
+        }
+
+        private static string GetRequiredString(SqlDataReader reader, string column)
+        {
+            var value = reader[column];
+
+            if (value == DBNull.Value || string.IsNullOrWhiteSpace(value.ToString()))
+            {
+                throw new InvalidOperationException(
+                    $"Column '{column}' is required but missing.");
+            }
+
+            return value.ToString()!;
         }
 
         public async Task<List<ProjectPartCurrentDto>> GetProjectPartsCurrentAsync(
