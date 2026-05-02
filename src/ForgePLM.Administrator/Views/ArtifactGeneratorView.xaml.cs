@@ -2,7 +2,7 @@
 using ForgePLM.Contracts.Customers;
 using ForgePLM.Contracts.Eco;
 using ForgePLM.Contracts.Projects;
-using ForgePLM.Contracts.Revisions;
+using ForgePLM.Contracts.Artifacts;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
@@ -37,17 +37,20 @@ namespace ForgePLM.Administrator.Views
                 "Artifact Generator");
         }
 
-    
+
+        private EcoDto? _selectedEco;
+
         private async void ArtifactEcoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             EcoParts.Clear();
 
-            var eco = ArtifactEcoComboBox.SelectedItem as EcoDto;
-            if (eco == null)
+            _selectedEco = ArtifactEcoComboBox.SelectedItem as EcoDto;
+            if (_selectedEco == null)
                 return;
 
-            var rows = await _client.GetArtifactEcoContentsAsync(eco.EcoId);
+            ArtifactEcoStateTextBox.Text = _selectedEco.EcoState ?? string.Empty;
 
+            var rows = await _client.GetArtifactEcoContentsAsync(_selectedEco.EcoId);
 
             foreach (var row in rows)
             {
@@ -55,7 +58,7 @@ namespace ForgePLM.Administrator.Views
                 {
                     IsSelected = false,
 
-                    EcoId = eco.EcoId,   // ← comes from selected ECO
+                    EcoId = _selectedEco.EcoId,
                     PartId = row.PartId,
                     RevisionId = row.RevisionId,
 
@@ -64,20 +67,18 @@ namespace ForgePLM.Administrator.Views
                     Description = row.Description ?? string.Empty,
                     RevisionState = row.RevisionState ?? string.Empty,
                     DocumentType = row.DocumentType ?? string.Empty,
-                    DisplayCompositeCode = row.DisplayCompositeCode,
-                    //SourceFilePath = row.FilePath ?? string.Empty
-                    SourceFilePath = BuildDevFilePath(row)
+                    DisplayCompositeCode = row.DisplayCompositeCode
                 });
             }
         }
 
-        private string BuildDevFilePath(PartRevisionItemDto row)
-        {
-            return Path.Combine(
-                @"E:\Vault\development",
-                $"{row.DisplayPartNumber}.sldprt"
-            );
-        }
+        //private string BuildDevFilePath(PartRevisionItemDto row)
+        //{
+        //    return Path.Combine(
+        //        @"E:\Vault\development",
+        //        $"{row.DisplayPartNumber}.sldprt"
+        //    );
+        //}
 
         private async void ArtifactGeneratorView_Loaded(object sender, RoutedEventArgs e)
         {
@@ -135,6 +136,15 @@ namespace ForgePLM.Administrator.Views
 
         private async void GenerateOutputsButton_Click(object sender, RoutedEventArgs e)
         {
+
+
+            if (_selectedEco == null)
+
+            {
+                MessageBox.Show("Select an ECO first.", "Artifact Generator");
+                return;
+            }
+
             var selectedParts = ArtifactPartsGrid.SelectedItems
                 .Cast<ArtifactPartRowViewModel>()
                 .ToList();
@@ -145,48 +155,105 @@ namespace ForgePLM.Administrator.Views
                 return;
             }
 
-            bool generateStep = StepAp214CheckBox.IsChecked == true;
+            var description = ArtifactBatchDescriptionTextBox.Text.Trim();
 
-            if (!generateStep)
+            if (string.IsNullOrWhiteSpace(description))
+            {
+                MessageBox.Show("Enter a batch description.", "Artifact Generator");
+                return;
+            }
+
+            var outputs = new List<ArtifactOutputOptionDto>();
+
+            if (StepAp214CheckBox.IsChecked == true)
+                outputs.Add(new ArtifactOutputOptionDto("STEP", "AP214"));
+
+            if (StlCheckBox.IsChecked == true)
+                outputs.Add(new ArtifactOutputOptionDto("STL", StlQualityComboBox.Text));
+
+            if (NativeCheckBox.IsChecked == true)
+                outputs.Add(new ArtifactOutputOptionDto("SW_NATIVE", "Original"));
+
+            if (PdfCheckBox.IsChecked == true)
+                outputs.Add(new ArtifactOutputOptionDto("PDF", "DrawingOnly"));
+
+            if (!outputs.Any())
             {
                 MessageBox.Show("Select at least one output type.", "Artifact Generator");
                 return;
             }
 
-            await GenerateStepOutputsAsync(selectedParts);
-        }
-
-        private async Task GenerateStepOutputsAsync(List<ArtifactPartRowViewModel> selectedParts)
-        {
             try
             {
-                var exporter = new SolidWorksArtifactExportService();
+                SetArtifactBusy(true, "Generating artifact batch...");
 
-                foreach (var part in selectedParts)
+
+                var request = new GenerateArtifactBatchRequest(
+                EcoId: _selectedEco.EcoId,
+                BatchDescription: description,
+                CreateZip: CreateZipCheckBox.IsChecked == true,
+                ArchivePrevious: ArchivePreviousCheckBox.IsChecked == true,
+                RevisionIds: selectedParts.Select(x => x.RevisionId).ToList(),
+                Outputs: outputs
+            );
+
+                var job = await _client.StartArtifactGenerationJobAsync(request);
+
+                SetArtifactBusy(true, job.Message);
+
+
+                while (job.Status is "queued" or "processing")
                 {
-                    // temporary path until artifact_batch table exists
-                    string outputFolder = Path.Combine(
-                        @"E:\ForgePLM\production",
-                        "artifact-generator-test");
+                    await Task.Delay(750);
 
-                    
+                    job = await _client.GetArtifactGenerationJobAsync(job.JobId);
 
-                    Directory.CreateDirectory(outputFolder);
+                    ArtifactProgressBar.IsIndeterminate = job.TotalSteps <= 0;
+                    ArtifactProgressBar.Maximum = Math.Max(job.TotalSteps, 1);
+                    ArtifactProgressBar.Value = job.CompletedSteps;
 
-                    string outputPath = Path.Combine(
-                        outputFolder,
-                        $"{part.DisplayCompositeCode} {SanitizeFileName(part.Description)}-DRAFT.step");
-
-                    await exporter.ExportStepAp214Async(part.SourceFilePath, outputPath);
+                    ArtifactProgressTextBlock.Text = job.Message;
                 }
 
-                MessageBox.Show("STEP outputs generated.", "Artifact Generator");
+                if (job.Status == "completed")
+                {
+                    var ticket = job.Result;
+
+                    SetArtifactBusy(false,
+                        $"Created {ticket?.BatchCode} with {ticket?.Artifacts.Count ?? 0} artifact(s).");
+                }
+                else
+                {
+                    SetArtifactBusy(false, "Generation failed.");
+                    MessageBox.Show(job.Message, "Artifact Generator");
+                }
+
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Artifact Generator Error");
+                SetArtifactBusy(false, "Generation failed.");
+
+                MessageBox.Show(
+                    ex.Message,
+                    "Artifact Generator",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
+
+        private void SetArtifactBusy(bool isBusy, string message = "")
+        {
+            ArtifactProgressBar.Visibility = isBusy
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            ArtifactProgressTextBlock.Text = message;
+
+            GenerateOutputsButton.IsEnabled = !isBusy;
+            ValidateButton.IsEnabled = !isBusy;
+        }
+
+        
 
         private static string SanitizeFileName(string value)
         {

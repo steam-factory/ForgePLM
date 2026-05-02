@@ -106,6 +106,12 @@
                             <Style TargetType="TextBlock">
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                             </Style>
+
+                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#22C55E"/>
+                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#22C55E"/>
+                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+                            <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
+
                         </DataGrid.Resources>
 
                         <DataGrid.CellStyle>
@@ -113,6 +119,7 @@
                                 <Setter Property="Padding" Value="6,4"/>
                                 <Setter Property="VerticalContentAlignment" Value="Center"/>
                             </Style>
+                            
                         </DataGrid.CellStyle>
 
                         <DataGrid.Columns>
@@ -189,19 +196,44 @@
 
         <Border Grid.Row="4" Padding="14" CornerRadius="10" BorderBrush="#D0D7DE" BorderThickness="1" Background="White">
             <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="Batch Description" FontWeight="SemiBold"/>
                     <TextBox x:Name="ArtifactBatchDescriptionTextBox" Height="34" Margin="0,4,0,0" VerticalContentAlignment="Center" ToolTip="Example: Vendor quote package for Acme Manufacturing"/>
+
                 </StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom">
+                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,12,0">
+                    <ProgressBar x:Name="ArtifactProgressBar"
+                         Width="160"
+                         Height="14"
+                         IsIndeterminate="True"
+                         Visibility="Collapsed"
+                         Margin="0,0,8,0"/>
+
+                    <TextBlock x:Name="ArtifactProgressTextBlock"
+                       Text=""
+                       VerticalAlignment="Center"
+                       Foreground="#6B7280"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
                     <Button Content="Validate"
+                            Name="ValidateButton"
                         Width="100"
                         Height="34"
                         Margin="0,0,8,0"
                         Click="ValidateButton_Click"/>
 
                     <Button Content="Generate Outputs"
+                            Name="GenerateOutputsButton"
                         Width="150"
                         Height="34"
                         FontWeight="SemiBold"

@@ -8,6 +8,7 @@ using ForgePLM.Contracts.Revisions;
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
+using ForgePLM.Contracts.Artifacts;
 using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -244,6 +245,57 @@ namespace ForgePLM.Administrator.Services
                 cancellationToken);
 
             return response ?? new List<PartRevisionItemDto>();
+        }
+        public async Task<ArtifactBatchDto> GenerateArtifactBatchAsync(
+               GenerateArtifactBatchRequest request,
+              CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "/api/artifact-batches/generate",
+                request,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            var batch = await response.Content.ReadFromJsonAsync<ArtifactBatchDto>(
+                cancellationToken: cancellationToken);
+
+            return batch ?? throw new InvalidOperationException(
+                "Artifact batch API returned no response body.");
+        }
+
+        public async Task<ArtifactGenerationJobDto> StartArtifactGenerationJobAsync(
+            GenerateArtifactBatchRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.PostAsJsonAsync(
+                "/api/artifact-batches/jobs",
+                request,
+                cancellationToken);
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    $"Start job failed.\n\nStatus: {(int)response.StatusCode} {response.ReasonPhrase}\n\n{body}");
+            }
+
+            var job = await response.Content.ReadFromJsonAsync<ArtifactGenerationJobDto>(
+                cancellationToken: cancellationToken);
+
+            return job ?? throw new InvalidOperationException(
+                "Job API returned no response body.");
+        }
+
+        public async Task<ArtifactGenerationJobDto> GetArtifactGenerationJobAsync(
+            Guid jobId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _httpClient.GetFromJsonAsync<ArtifactGenerationJobDto>(
+                $"/api/artifact-batches/jobs/{jobId}",
+                cancellationToken)
+                ?? throw new InvalidOperationException("Job status API returned no body.");
         }
 
 

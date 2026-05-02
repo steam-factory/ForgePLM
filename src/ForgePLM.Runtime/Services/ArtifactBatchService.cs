@@ -1,0 +1,388 @@
+using ForgePLM.Contracts.Artifacts;
+using ForgePLM.Runtime.Models;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+
+namespace ForgePLM.Runtime.Services;
+
+public class ArtifactBatchService : IArtifactBatchService
+{
+    private const string ProductionRootPath = @"E:\ForgePLM\production";
+    private const string DevelopmentProjectsRootPath = @"E:\SteamFactory_DEV\Projects";
+
+    private readonly string _connectionString;
+    private readonly IArtifactGenerationJobStore _jobStore;
+
+    public ArtifactBatchService(
+        IConfiguration configuration,
+        IArtifactGenerationJobStore jobStore)
+    {
+        _connectionString = configuration.GetConnectionString("ForgePlmDb")
+            ?? throw new InvalidOperationException("Missing connection string: ForgePlmDb");
+
+        _jobStore = jobStore;
+    }
+
+    public Task<ArtifactBatchDto> GenerateArtifactBatchAsync(
+        GenerateArtifactBatchRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        return GenerateArtifactBatchAsync(
+            request,
+            Guid.Empty,
+            cancellationToken);
+    }
+
+    public async Task<ArtifactBatchDto> GenerateArtifactBatchAsync(
+        GenerateArtifactBatchRequest request,
+        Guid jobId,
+        CancellationToken cancellationToken = default)
+    {
+        bool trackProgress = jobId != Guid.Empty;
+
+        ValidateRequest(request);
+
+        if (trackProgress)
+            _jobStore.Update(jobId, "processing", 0, 0, "Creating artifact batch...");
+
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync(cancellationToken);
+
+        ArtifactBatchHeader batchHeader = await CreateArtifactBatchAsync(
+            conn,
+            request,
+            cancellationToken);
+
+        var workItems = await ResolveArtifactWorkItemsAsync(
+            conn,
+            request.EcoId,
+            request.RevisionIds,
+            cancellationToken);
+
+        if (workItems.Count == 0)
+            throw new InvalidOperationException("No matching ECO revisions were found for artifact generation.");
+
+        var stepOutputs = request.Outputs
+            .Where(x => string.Equals(x.OutputType, "STEP", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        int totalSteps = workItems.Count * stepOutputs.Count;
+        int completedSteps = 0;
+
+        if (trackProgress)
+        {
+            _jobStore.Update(
+                jobId,
+                "processing",
+                completedSteps,
+                totalSteps,
+                $"Starting {totalSteps} export(s)...");
+        }
+
+        var artifacts = new List<ArtifactDto>();
+        var exporter = new SolidWorksArtifactExportService();
+
+        foreach (var item in workItems)
+        {
+            foreach (var output in stepOutputs)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                string variant = string.IsNullOrWhiteSpace(output.Variant)
+                    ? "AP214"
+                    : output.Variant.Trim();
+
+                if (trackProgress)
+                {
+                    _jobStore.Update(
+                        jobId,
+                        "processing",
+                        completedSteps,
+                        totalSteps,
+                        $"Exporting {item.DisplayCompositeCode} STEP {variant}...");
+                }
+
+                ArtifactDto artifact = await ExportStepArtifactAsync(
+                    exporter,
+                    batchHeader,
+                    item,
+                    variant,
+                    cancellationToken);
+
+                artifacts.Add(artifact);
+                completedSteps++;
+
+                if (trackProgress)
+                {
+                    _jobStore.Update(
+                        jobId,
+                        "processing",
+                        completedSteps,
+                        totalSteps,
+                        $"Completed {item.DisplayCompositeCode} STEP {variant}.");
+                }
+            }
+        }
+
+
+        // after loop finishes, before Complete()
+        var result = new ArtifactBatchDto(
+        ArtifactBatchId: batchHeader.ArtifactBatchId,
+        BatchNumber: batchHeader.BatchNumber,
+        BatchCode: batchHeader.BatchCode,
+        EcoId: batchHeader.EcoId,
+        BatchDescription: batchHeader.BatchDescription,
+        BatchState: batchHeader.BatchState,
+        OutputRootPath: batchHeader.OutputRootPath,
+        ZipFilePath: batchHeader.ZipFilePath,
+        Artifacts: artifacts);
+
+        if (trackProgress)
+        {
+            _jobStore.Update(
+                jobId,
+                "processing",
+                totalSteps,
+                totalSteps,
+                $"Finalizing {batchHeader.BatchCode}...");
+        }
+
+        await Task.Delay(2400, cancellationToken);
+
+        if (trackProgress)
+        {
+            _jobStore.Complete(jobId, result);
+        }
+
+        return result;
+
+    }
+
+    private static void ValidateRequest(GenerateArtifactBatchRequest request)
+    {
+        if (request.EcoId <= 0)
+            throw new InvalidOperationException("ECO is required.");
+
+        if (string.IsNullOrWhiteSpace(request.BatchDescription))
+            throw new InvalidOperationException("Batch description is required.");
+
+        if (request.RevisionIds == null || request.RevisionIds.Count == 0)
+            throw new InvalidOperationException("At least one revision is required.");
+
+        if (request.Outputs == null || request.Outputs.Count == 0)
+            throw new InvalidOperationException("At least one output type is required.");
+    }
+
+    private async Task<ArtifactBatchHeader> CreateArtifactBatchAsync(
+        SqlConnection conn,
+        GenerateArtifactBatchRequest request,
+        CancellationToken cancellationToken)
+    {
+        const string sql = @"
+INSERT INTO dbo.artifact_batches
+(
+    eco_id,
+    batch_description,
+    batch_state,
+    create_zip,
+    archive_previous,
+    output_root_path,
+    zip_file_path,
+    created_by,
+    created_utc
+)
+OUTPUT
+    INSERTED.artifact_batch_id,
+    INSERTED.batch_number,
+    INSERTED.batch_code,
+    INSERTED.eco_id,
+    INSERTED.batch_description,
+    INSERTED.batch_state,
+    INSERTED.output_root_path,
+    INSERTED.zip_file_path
+VALUES
+(
+    @eco_id,
+    @batch_description,
+    'created',
+    @create_zip,
+    @archive_previous,
+    @output_root_path,
+    NULL,
+    @created_by,
+    SYSUTCDATETIME()
+);";
+
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@eco_id", request.EcoId);
+        cmd.Parameters.AddWithValue("@batch_description", request.BatchDescription.Trim());
+        cmd.Parameters.AddWithValue("@create_zip", request.CreateZip);
+        cmd.Parameters.AddWithValue("@archive_previous", request.ArchivePrevious);
+        cmd.Parameters.AddWithValue("@output_root_path", Path.Combine(ProductionRootPath, "pending"));
+        cmd.Parameters.AddWithValue("@created_by", Environment.UserName);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        if (!await reader.ReadAsync(cancellationToken))
+            throw new InvalidOperationException("Artifact batch insert returned no row.");
+
+        return new ArtifactBatchHeader
+        {
+            ArtifactBatchId = reader.GetInt32(reader.GetOrdinal("artifact_batch_id")),
+            BatchNumber = Convert.ToInt64(reader["batch_number"]),
+            BatchCode = reader["batch_code"] as string ?? string.Empty,
+            EcoId = reader.GetInt32(reader.GetOrdinal("eco_id")),
+            BatchDescription = reader["batch_description"] as string ?? string.Empty,
+            BatchState = reader["batch_state"] as string ?? string.Empty,
+            OutputRootPath = reader["output_root_path"] as string ?? string.Empty,
+            ZipFilePath = reader["zip_file_path"] as string
+        };
+    }
+
+    private async Task<ArtifactDto> ExportStepArtifactAsync(
+        SolidWorksArtifactExportService exporter,
+        ArtifactBatchHeader batchHeader,
+        ArtifactWorkItem item,
+        string variant,
+        CancellationToken cancellationToken)
+    {
+        string sourceFilePath = Path.Combine(
+            DevelopmentProjectsRootPath,
+            $"{item.ProjectCode} - {item.ProjectName}",
+            "development",
+            $"{item.DisplayPartNumber}.SLDPRT");
+
+        if (!File.Exists(sourceFilePath))
+            throw new FileNotFoundException("Source SolidWorks file was not found.", sourceFilePath);
+
+        string outputFolder = Path.Combine(
+            ProductionRootPath,
+            batchHeader.BatchCode,
+            "STEP");
+
+        Directory.CreateDirectory(outputFolder);
+
+        string safeDescription = SanitizeFileName(item.Description);
+        string outputFileName =
+            $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT.step";
+
+        string outputPath = Path.Combine(outputFolder, outputFileName);
+
+        await exporter.ExportStepAp214Async(sourceFilePath, outputPath);
+
+        return new ArtifactDto(
+            ArtifactId: 0,
+            RevisionId: item.RevisionId,
+            ArtifactType: "STEP",
+            Variant: variant,
+            FileName: outputFileName,
+            FilePath: outputPath,
+            ArtifactState: "created");
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Artifact";
+
+        foreach (char c in Path.GetInvalidFileNameChars())
+            value = value.Replace(c, '-');
+
+        return value.Trim().TrimEnd('.');
+    }
+
+    private async Task<List<ArtifactWorkItem>> ResolveArtifactWorkItemsAsync(
+        SqlConnection conn,
+        int ecoId,
+        IReadOnlyList<int> revisionIds,
+        CancellationToken cancellationToken)
+    {
+        if (revisionIds == null || revisionIds.Count == 0)
+            return new List<ArtifactWorkItem>();
+
+        var results = new List<ArtifactWorkItem>();
+
+        var parameterNames = revisionIds
+            .Select((_, index) => $"@revisionId{index}")
+            .ToList();
+
+        var sql = $@"
+SELECT
+    e.eco_id,
+    e.eco_number,
+    e.eco_state,
+
+    pr.project_id,
+    pr.project_code,
+    pr.project_name,
+
+    p.part_id,
+    p.category_code,
+    p.part_number_int,
+
+    r.revision_id,
+    r.revision_code,
+    r.part_description,
+    r.revision_state,
+    p.document_type
+FROM dbo.revisions r
+INNER JOIN dbo.part_numbers p
+    ON p.part_id = r.part_id
+INNER JOIN dbo.eco e
+    ON e.eco_id = r.eco_id
+INNER JOIN dbo.projects pr
+    ON pr.project_id = e.project_id
+WHERE r.eco_id = @ecoId
+  AND r.revision_id IN ({string.Join(",", parameterNames)})
+ORDER BY p.category_code, p.part_number_int, r.revision_code;";
+
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@ecoId", ecoId);
+
+        for (int i = 0; i < revisionIds.Count; i++)
+        {
+            cmd.Parameters.AddWithValue(parameterNames[i], revisionIds[i]);
+        }
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add(new ArtifactWorkItem
+            {
+                EcoId = reader.GetInt32(reader.GetOrdinal("eco_id")),
+                EcoNumber = reader["eco_number"] as string ?? string.Empty,
+                EcoState = reader["eco_state"] as string ?? string.Empty,
+
+                ProjectId = reader.GetInt32(reader.GetOrdinal("project_id")),
+                ProjectCode = reader["project_code"] as string ?? string.Empty,
+                ProjectName = reader["project_name"] as string ?? string.Empty,
+
+                PartId = reader.GetInt32(reader.GetOrdinal("part_id")),
+                CategoryCode = reader["category_code"] as string ?? string.Empty,
+                PartNumberInt = Convert.ToInt32(reader["part_number_int"]),
+
+                RevisionId = reader.GetInt32(reader.GetOrdinal("revision_id")),
+                RevisionCode = Convert.ToInt32(reader["revision_code"]),
+
+                Description = reader["part_description"] as string ?? string.Empty,
+                RevisionState = reader["revision_state"] as string ?? string.Empty,
+                DocumentType = reader["document_type"] as string ?? string.Empty
+            });
+        }
+
+        return results;
+    }
+
+    private sealed class ArtifactBatchHeader
+    {
+        public int ArtifactBatchId { get; init; }
+        public long BatchNumber { get; init; }
+        public string BatchCode { get; init; } = string.Empty;
+        public int EcoId { get; init; }
+        public string BatchDescription { get; init; } = string.Empty;
+        public string BatchState { get; init; } = string.Empty;
+        public string OutputRootPath { get; init; } = string.Empty;
+        public string? ZipFilePath { get; init; }
+    }
+}

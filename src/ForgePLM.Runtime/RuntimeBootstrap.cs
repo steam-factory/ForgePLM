@@ -49,7 +49,9 @@ namespace ForgePLM.Runtime
             builder.Services.AddScoped<IPartManagerService, PartManagerService>();
             builder.Services.Configure<VaultPathSettings>(
             builder.Configuration.GetSection("Vault"));
-            builder.Services.AddScoped<IVaultPathResolver, VaultPathResolver>();
+            builder.Services.AddScoped<IVaultPathResolver, VaultPathResolver>(); 
+            builder.Services.AddScoped<IArtifactBatchService, ArtifactBatchService>();
+            builder.Services.AddSingleton<IArtifactGenerationJobStore, ArtifactGenerationJobStore>();
         }
 
         private static void ConfigurePipeline(WebApplication app, bool enableSwagger)
