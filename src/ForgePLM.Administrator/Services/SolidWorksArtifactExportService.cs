@@ -8,77 +8,7 @@ namespace ForgePLM.Administrator.Services
 {
     public class SolidWorksArtifactExportService
     {
-        public Task ExportStepAp214Async(string sourceFilePath, string outputStepPath)
-        {
-            return Task.Run(() =>
-            {
-                if (string.IsNullOrWhiteSpace(sourceFilePath))
-                    throw new InvalidOperationException("Source file path is missing.");
-
-                if (!File.Exists(sourceFilePath))
-                    throw new FileNotFoundException("Source SolidWorks file was not found.", sourceFilePath);
-
-                string? outputDirectory = Path.GetDirectoryName(outputStepPath);
-
-                if (string.IsNullOrWhiteSpace(outputDirectory))
-                    throw new InvalidOperationException("Output directory could not be determined.");
-
-                Directory.CreateDirectory(outputDirectory);
-
-
-                SwApp  swApp = GetOrStartSolidWorks();
-
-                swApp.Visible = false;
-                swApp.UserControl = false;
-                swApp.CommandInProgress = true;
-
-                int errors = 0;
-                int warnings = 0;
-
-                int docType = GetDocumentType(sourceFilePath);
-
-                SwModelDoc model = swApp.OpenDoc6(
-                    sourceFilePath,
-                    docType,
-                    (int)SwConst.swOpenDocOptions_e.swOpenDocOptions_Silent,
-                    "",
-                    ref errors,
-                    ref warnings);
-
-                if (model == null)
-                    throw new InvalidOperationException(
-                        $"SolidWorks failed to open source file.\n\nFile: {sourceFilePath}\nErrors: {errors}\nWarnings: {warnings}");
-
-                try
-                {
-                    swApp.SetUserPreferenceIntegerValue(
-                        (int)SwConst.swUserPreferenceIntegerValue_e.swStepAP,
-                        214);
-
-                    int saveErrors = 0;
-                    int saveWarnings = 0;
-
-                    bool success = model.Extension.SaveAs(
-                        outputStepPath,
-                        (int)SwConst.swSaveAsVersion_e.swSaveAsCurrentVersion,
-                        (int)SwConst.swSaveAsOptions_e.swSaveAsOptions_Silent,
-                        null,
-                        ref saveErrors,
-                        ref saveWarnings);
-
-                    if (!success)
-                    {
-                        throw new InvalidOperationException(
-                            $"STEP export failed.\n\nOutput: {outputStepPath}\nErrors: {saveErrors}\nWarnings: {saveWarnings}");
-                    }
-                }
-                finally
-                {
-                    swApp.CloseDoc(model.GetTitle());
-                    swApp.CommandInProgress = false;
-                }
-            });
-        }
+        
 
         private static SldWorks.SldWorks GetOrStartSolidWorks()
         {

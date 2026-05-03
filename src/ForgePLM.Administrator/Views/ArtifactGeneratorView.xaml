@@ -179,7 +179,6 @@
                                     <Separator Margin="0,16"/>
                                     <TextBlock Text="Actions" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                     <CheckBox x:Name="CreateZipCheckBox" Content="Create ZIP package" Margin="0,4"/>
-                                    <CheckBox x:Name="ArchivePreviousCheckBox" Content="Archive previous versions" Margin="0,4"/>
                                     <Separator Margin="0,16"/>
 
                                     <TextBlock Text="Generation Status"

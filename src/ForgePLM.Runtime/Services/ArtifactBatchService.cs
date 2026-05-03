@@ -1,7 +1,7 @@
 using ForgePLM.Contracts.Artifacts;
 using ForgePLM.Runtime.Models;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
+using System.IO.Compression;
 
 namespace ForgePLM.Runtime.Services;
 
@@ -22,41 +22,7 @@ public class ArtifactBatchService : IArtifactBatchService
 
         _jobStore = jobStore;
     }
-    private Task<ArtifactDto> ExportStlArtifactAsync(
-    SqlConnection conn,
-    SolidWorksArtifactExportService exporter,
-    ArtifactBatchHeader batchHeader,
-    ArtifactWorkItem item,
-    string variant,
-    string realOutputRoot,
-    CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException("STL export is not implemented yet.");
-    }
-
-    private Task<ArtifactDto> CopyNativeArtifactAsync(
-        SqlConnection conn,
-        ArtifactBatchHeader batchHeader,
-        ArtifactWorkItem item,
-        string variant,
-        string realOutputRoot,
-        CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException("SolidWorks Native output is not implemented yet.");
-    }
-
-    private Task<ArtifactDto> ExportPdfArtifactAsync(
-        SqlConnection conn,
-        SolidWorksArtifactExportService exporter,
-        ArtifactBatchHeader batchHeader,
-        ArtifactWorkItem item,
-        string variant,
-        string realOutputRoot,
-        CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException("PDF export is not implemented yet.");
-    }
-
+    
     public Task<ArtifactBatchDto> GenerateArtifactBatchAsync(
         GenerateArtifactBatchRequest request,
         CancellationToken cancellationToken = default)
@@ -105,6 +71,10 @@ public class ArtifactBatchService : IArtifactBatchService
         string realOutputRoot = Path.Combine(
         ProductionRootPath,
         batchHeader.BatchCode);
+
+        string zipPath = Path.Combine(
+        Path.GetDirectoryName(realOutputRoot)!,
+        $"{batchHeader.BatchCode}.zip");
 
         Directory.CreateDirectory(realOutputRoot);
 
@@ -168,6 +138,28 @@ public class ArtifactBatchService : IArtifactBatchService
             }
         }
 
+        string? zipFilePath = batchHeader.ZipFilePath;
+
+        // If ZIP creation was requested, create the ZIP package after all artifacts have been generated. This ensures that the ZIP file contains all the newly created artifacts. We perform this step at the end to avoid issues with files being added to the ZIP while it's being created, which can lead to file locks and incomplete ZIP contents.
+        if (request.CreateZip)
+        {
+            if (trackProgress)
+            {
+                _jobStore.Update(
+                    jobId,
+                    "processing",
+                    totalSteps,
+                    totalSteps,
+                    $"Creating ZIP package for {batchHeader.BatchCode}...");
+            }
+
+            zipFilePath = await CreateBatchZipAsync(
+                conn,
+                batchHeader.ArtifactBatchId,
+                realOutputRoot,
+                batchHeader.BatchCode,
+                cancellationToken);
+        }
 
         // after loop finishes, before Complete()
         var result = new ArtifactBatchDto(
@@ -178,7 +170,7 @@ public class ArtifactBatchService : IArtifactBatchService
         BatchDescription: batchHeader.BatchDescription,
         BatchState: batchHeader.BatchState,
         OutputRootPath: realOutputRoot, // 👈 FIXED
-        ZipFilePath: batchHeader.ZipFilePath,
+        ZipFilePath: zipFilePath,
         Artifacts: artifacts);
 
         if (trackProgress)
@@ -199,9 +191,229 @@ public class ArtifactBatchService : IArtifactBatchService
         }
 
 
-
         return result;
 
+    }
+
+    private static string BuildSourceFilePath(ArtifactWorkItem item)
+    {
+        string extension = item.DocumentType.ToUpperInvariant() switch
+        {
+            "ASSEMBLY" => ".SLDASM",
+            "DRAWING" => ".SLDDRW",
+            _ => ".SLDPRT"
+        };
+
+        return Path.Combine(
+            @"E:\SteamFactory_DEV\Projects",
+            $"{item.ProjectCode} - {item.ProjectName}",
+            "development",
+            $"{item.DisplayPartNumber}{extension}");
+    }
+
+    //exports
+    
+    // For SW_NATIVE, we simply copy the original SolidWorks file to the output location and record it as an artifact, without any conversion.
+    private async Task<ArtifactDto> CopyNativeArtifactAsync(
+        SqlConnection conn,
+        ArtifactBatchHeader batchHeader,
+        ArtifactWorkItem item,
+        string variant,
+        string realOutputRoot,
+        CancellationToken cancellationToken)
+    {
+        string sourceFilePath = BuildSourceFilePath(item);
+        string outputFolder = Path.Combine(realOutputRoot, "SW_NATIVE");
+
+        Directory.CreateDirectory(outputFolder);
+
+        string extension = Path.GetExtension(sourceFilePath);
+        string safeDescription = SanitizeFileName(item.Description);
+
+        string outputFileName =
+            $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT{extension}";
+
+        string outputPath = Path.Combine(outputFolder, outputFileName);
+
+        File.Copy(sourceFilePath, outputPath, overwrite: false);
+
+        var fileInfo = new FileInfo(outputPath);
+
+        var tempArtifact = new ArtifactDto(
+            ArtifactId: 0,
+            RevisionId: item.RevisionId,
+            ArtifactType: "SW_NATIVE",
+            Variant: variant,
+            FileName: outputFileName,
+            FilePath: outputPath,
+            ArtifactState: "completed");
+
+        int artifactId = await InsertArtifactRecordAsync(
+            conn,
+            batchHeader.ArtifactBatchId,
+            tempArtifact,
+            fileInfo.Length,
+            fileHash: null,
+            cancellationToken);
+
+        return tempArtifact with { ArtifactId = artifactId };
+    }
+
+    // For STEP, we export the part or assembly file to STEP AP214 format using SolidWorks. We support exporting both parts and assemblies to STEP, as this is a common use case for sharing 3D models in a neutral format.
+    private async Task<ArtifactDto> ExportStepArtifactAsync(
+        SqlConnection conn,
+        SolidWorksArtifactExportService exporter,
+        ArtifactBatchHeader batchHeader,
+        ArtifactWorkItem item,
+        string variant,
+        string realOutputRoot,
+        CancellationToken cancellationToken)
+    {
+        string sourceFilePath = Path.Combine(
+            DevelopmentProjectsRootPath,
+            $"{item.ProjectCode} - {item.ProjectName}",
+            "development",
+            $"{item.DisplayPartNumber}.SLDPRT");
+
+        if (!File.Exists(sourceFilePath))
+            throw new FileNotFoundException("Source SolidWorks file was not found.", sourceFilePath);
+
+        string outputFolder = Path.Combine(realOutputRoot, "STEP");
+
+        Directory.CreateDirectory(outputFolder);
+
+        string safeDescription = SanitizeFileName(item.Description);
+        string outputFileName =
+            $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT.step";
+
+        string outputPath = Path.Combine(outputFolder, outputFileName);
+        string outputRootPath = Path.Combine(@"E:\ForgePLM\production", batchHeader.BatchCode);
+
+        Directory.CreateDirectory(realOutputRoot);
+
+        await UpdateBatchOutputPathAsync(
+            conn,
+            batchHeader.ArtifactBatchId,
+            realOutputRoot,
+            cancellationToken);
+        await exporter.ExportStepAp214Async(sourceFilePath, outputPath);
+
+        var fileInfo = new FileInfo(outputPath);
+
+        var tempArtifact = new ArtifactDto(
+            ArtifactId: 0,
+            RevisionId: item.RevisionId,
+            ArtifactType: "STEP",
+            Variant: variant,
+            FileName: outputFileName,
+            FilePath: outputPath,
+            ArtifactState: "completed");
+
+        int artifactId = await InsertArtifactRecordAsync(
+            conn,
+            batchHeader.ArtifactBatchId,
+            tempArtifact,
+            fileInfo.Length,
+            fileHash: null,
+            cancellationToken);
+
+        return tempArtifact with { ArtifactId = artifactId };
+    }
+
+    // For STL, we export the part file to STL format using SolidWorks. We only support exporting parts to STL, as assemblies and drawings typically require different handling and may not be suitable for STL output.
+    private async Task<ArtifactDto> ExportStlArtifactAsync(
+        SqlConnection conn,
+        SolidWorksArtifactExportService exporter,
+        ArtifactBatchHeader batchHeader,
+        ArtifactWorkItem item,
+        string variant,
+        string realOutputRoot,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(item.DocumentType, "PART", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("STL output is only supported for parts.");
+
+        string sourceFilePath = BuildSourceFilePath(item);
+        string outputFolder = Path.Combine(realOutputRoot, "STL");
+        Directory.CreateDirectory(outputFolder);
+
+        string safeDescription = SanitizeFileName(item.Description);
+        string outputFileName =
+            $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT.stl";
+
+        string outputPath = Path.Combine(outputFolder, outputFileName);
+
+        await exporter.ExportStlAsync(sourceFilePath, outputPath, variant);
+
+        var fileInfo = new FileInfo(outputPath);
+
+        var tempArtifact = new ArtifactDto(
+            0,
+            item.RevisionId,
+            "STL",
+            variant,
+            outputFileName,
+            outputPath,
+            "completed");
+
+        int artifactId = await InsertArtifactRecordAsync(
+            conn,
+            batchHeader.ArtifactBatchId,
+            tempArtifact,
+            fileInfo.Length,
+            null,
+            cancellationToken);
+
+        return tempArtifact with { ArtifactId = artifactId };
+    }
+
+
+
+    // For PDF, we export the drawing file to PDF format using SolidWorks. We only support exporting drawings to PDF, as parts and assemblies typically require different handling and may not be suitable for PDF output.
+    private async Task<ArtifactDto> ExportPdfArtifactAsync(
+            SqlConnection conn,
+            SolidWorksArtifactExportService exporter,
+            ArtifactBatchHeader batchHeader,
+            ArtifactWorkItem item,
+            string variant,
+            string realOutputRoot,
+            CancellationToken cancellationToken)
+    {
+        if (!string.Equals(item.DocumentType, "DRAWING", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("PDF output is only supported for drawings.");
+
+        string sourceFilePath = BuildSourceFilePath(item);
+        string outputFolder = Path.Combine(realOutputRoot, "PDF");
+        Directory.CreateDirectory(outputFolder);
+
+        string safeDescription = SanitizeFileName(item.Description);
+        string outputFileName =
+            $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT.pdf";
+
+        string outputPath = Path.Combine(outputFolder, outputFileName);
+
+        await exporter.ExportPdfAsync(sourceFilePath, outputPath);
+
+        var fileInfo = new FileInfo(outputPath);
+
+        var tempArtifact = new ArtifactDto(
+            0,
+            item.RevisionId,
+            "PDF",
+            variant,
+            outputFileName,
+            outputPath,
+            "completed");
+
+        int artifactId = await InsertArtifactRecordAsync(
+            conn,
+            batchHeader.ArtifactBatchId,
+            tempArtifact,
+            fileInfo.Length,
+            null,
+            cancellationToken);
+
+        return tempArtifact with { ArtifactId = artifactId };
     }
 
     private static void ValidateRequest(GenerateArtifactBatchRequest request)
@@ -285,70 +497,65 @@ public class ArtifactBatchService : IArtifactBatchService
         };
     }
 
-    private async Task<ArtifactDto> ExportStepArtifactAsync(
-        SqlConnection conn,
-        SolidWorksArtifactExportService exporter,
-        ArtifactBatchHeader batchHeader,
-        ArtifactWorkItem item,
-        string variant,
-        string realOutputRoot,
-        CancellationToken cancellationToken)
+    private async Task<string> CreateBatchZipAsync(
+    SqlConnection conn,
+    int artifactBatchId,
+    string realOutputRoot,
+    string batchCode,
+    CancellationToken cancellationToken)
     {
-        string sourceFilePath = Path.Combine(
-            DevelopmentProjectsRootPath,
-            $"{item.ProjectCode} - {item.ProjectName}",
-            "development",
-            $"{item.DisplayPartNumber}.SLDPRT");
-
-        if (!File.Exists(sourceFilePath))
-            throw new FileNotFoundException("Source SolidWorks file was not found.", sourceFilePath);
-
-        string outputFolder = Path.Combine(realOutputRoot, "STEP");
-
-        Directory.CreateDirectory(outputFolder);
-
-        string safeDescription = SanitizeFileName(item.Description);
-        string outputFileName =
-            $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT.step";
-
-        string outputPath = Path.Combine(outputFolder, outputFileName);
-        string outputRootPath = Path.Combine(@"E:\ForgePLM\production", batchHeader.BatchCode);
+        string parentFolder = Path.GetDirectoryName(realOutputRoot)
+            ?? throw new InvalidOperationException("Could not determine ZIP parent folder.");
+        string packageFolder = Path.Combine(realOutputRoot, "package");
+        Directory.CreateDirectory(packageFolder);
+        string zipPath = Path.Combine(packageFolder, $"{batchCode}.zip");
 
 
-        //string realOutputRoot = Path.Combine(
-        //    @"E:\ForgePLM\production",
-        //    batchHeader.BatchCode);
 
-        Directory.CreateDirectory(realOutputRoot);
+        if (File.Exists(zipPath))
+            File.Delete(zipPath);
 
-        await UpdateBatchOutputPathAsync(
+
+        using (var archive = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+        {
+            foreach (string filePath in Directory.EnumerateFiles(realOutputRoot, "*.*", SearchOption.AllDirectories))
+            {
+                if (filePath.StartsWith(packageFolder, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                string entryName = Path.GetRelativePath(realOutputRoot, filePath);
+                archive.CreateEntryFromFile(filePath, entryName, CompressionLevel.Optimal);
+            }
+        }
+
+        await UpdateBatchZipPathAsync(
             conn,
-            batchHeader.ArtifactBatchId,
-            realOutputRoot,
-            cancellationToken);
-        await exporter.ExportStepAp214Async(sourceFilePath, outputPath);
-
-        var fileInfo = new FileInfo(outputPath);
-
-        var tempArtifact = new ArtifactDto(
-            ArtifactId: 0,
-            RevisionId: item.RevisionId,
-            ArtifactType: "STEP",
-            Variant: variant,
-            FileName: outputFileName,
-            FilePath: outputPath,
-            ArtifactState: "completed");
-
-        int artifactId = await InsertArtifactRecordAsync(
-            conn,
-            batchHeader.ArtifactBatchId,
-            tempArtifact,
-            fileInfo.Length,
-            fileHash: null,
+            artifactBatchId,
+            zipPath,
             cancellationToken);
 
-        return tempArtifact with { ArtifactId = artifactId };
+        return zipPath;
     }
+
+    private async Task UpdateBatchZipPathAsync(
+    SqlConnection conn,
+    int artifactBatchId,
+    string zipFilePath,
+    CancellationToken cancellationToken)
+    {
+        const string sql = @"
+        UPDATE dbo.artifact_batches
+        SET zip_file_path = @zip_file_path
+        WHERE artifact_batch_id = @artifact_batch_id;";
+
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@artifact_batch_id", artifactBatchId);
+        cmd.Parameters.AddWithValue("@zip_file_path", zipFilePath);
+
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+
     private async Task UpdateBatchOutputPathAsync(
     SqlConnection conn,
     int artifactBatchId,
@@ -442,6 +649,8 @@ public class ArtifactBatchService : IArtifactBatchService
         if (revisionIds == null || revisionIds.Count == 0)
             return new List<ArtifactWorkItem>();
 
+
+
         var results = new List<ArtifactWorkItem>();
 
         var parameterNames = revisionIds
@@ -515,6 +724,7 @@ public class ArtifactBatchService : IArtifactBatchService
 
         return results;
     }
+
 
     private sealed class ArtifactBatchHeader
     {

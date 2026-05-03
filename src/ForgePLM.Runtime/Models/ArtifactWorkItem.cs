@@ -23,3 +23,4 @@ public sealed class ArtifactWorkItem
     public string RevisionState { get; set; } = string.Empty;
     public string DocumentType { get; set; } = string.Empty;
 }
+

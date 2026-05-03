@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 
 
@@ -139,7 +140,9 @@ namespace ForgePLM.Administrator.Views
 
         private async void GenerateOutputsButton_Click(object sender, RoutedEventArgs e)
         {
-
+            ArtifactProgressBar.Foreground = Brushes.SteelBlue;
+            ArtifactProgressBar.Value = 0;
+            ArtifactProgressTextBlock.Text = "";
 
             if (_selectedEco == null)
 
@@ -195,7 +198,7 @@ namespace ForgePLM.Administrator.Views
                 EcoId: _selectedEco.EcoId,
                 BatchDescription: description,
                 CreateZip: CreateZipCheckBox.IsChecked == true,
-                ArchivePrevious: ArchivePreviousCheckBox.IsChecked == true,
+                ArchivePrevious: false,
                 RevisionIds: selectedParts.Select(x => x.RevisionId).ToList(),
                 Outputs: outputs
             );
@@ -222,13 +225,34 @@ namespace ForgePLM.Administrator.Views
                 {
                     _lastBatch = job.Result;
 
-                    SetArtifactBusy(false,
-                        $"Created {_lastBatch?.BatchCode} with {_lastBatch?.Artifacts.Count ?? 0} artifact(s).");
+                    // ✅ Progress bar → full + success color
+                    ArtifactProgressBar.IsIndeterminate = false;
+                    ArtifactProgressBar.Maximum = 1;
+                    ArtifactProgressBar.Value = 1;
 
+                    ArtifactProgressBar.Foreground = new SolidColorBrush(
+                        (Color)ColorConverter.ConvertFromString("#16A34A")); // green
+
+                    // ✅ Clear, visible completion message
+                    ArtifactProgressTextBlock.Text =
+                        $"✔ Completed {_lastBatch?.BatchCode} ({_lastBatch?.Artifacts.Count ?? 0} artifacts)";
+
+                    // keep your existing status text
+                    bool hasZip = !string.IsNullOrWhiteSpace(_lastBatch?.ZipFilePath);
+
+                    string zipSuffix = hasZip ? " + .zip package" : "";
+
+                    SetArtifactBusy(false,
+                        $"Created {_lastBatch?.BatchCode} with {_lastBatch?.Artifacts.Count ?? 0} artifact(s){zipSuffix}.");
+
+                    // show results
                     ArtifactResultsGrid.ItemsSource = _lastBatch?.Artifacts;
                     ArtifactResultsGrid.Visibility = Visibility.Visible;
 
                     OpenOutputFolderButton.IsEnabled = true;
+
+                    // 👇 optional: short pause so user sees completion
+                    await Task.Delay(1200);
 
                     // 👇 NEW: conditional auto-open
                     if (AutoOpenFolderCheckBox.IsChecked == true &&
