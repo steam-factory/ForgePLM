@@ -180,6 +180,72 @@
                                     <TextBlock Text="Actions" FontWeight="SemiBold" Margin="0,0,0,8"/>
                                     <CheckBox x:Name="CreateZipCheckBox" Content="Create ZIP package" Margin="0,4"/>
                                     <CheckBox x:Name="ArchivePreviousCheckBox" Content="Archive previous versions" Margin="0,4"/>
+                                    <Separator Margin="0,16"/>
+
+                                    <TextBlock Text="Generation Status"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,8"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                        VerticalAlignment="Bottom"
+                                        Margin="0,0,12,0">
+                                        <ProgressBar x:Name="ArtifactProgressBar"
+                                         Width="160"
+                                         Height="14"
+                                         IsIndeterminate="True"
+                                         Visibility="Collapsed"
+                                         Margin="0,0,8,0"/>
+
+                                        <TextBlock x:Name="ArtifactProgressTextBlock"
+                                           Text=""
+                                           VerticalAlignment="Center"
+                                           Foreground="#6B7280"/>
+                                    </StackPanel>
+                                    <Separator Margin="0,16"/>
+
+                                    <TextBlock Text="Artifact Ticket"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,8"/>
+
+                                    <TextBlock x:Name="ArtifactTicketSummaryTextBlock"
+                                       Text="No batch generated yet."
+                                       Foreground="#6B7280"
+                                       TextWrapping="Wrap"/>
+
+                                    <DataGrid x:Name="ArtifactResultsGrid"
+                                      Margin="0,8,0,0"
+                                      Height="200"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      IsReadOnly="True"
+                                      Visibility="Collapsed">
+
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="File"
+                                            Binding="{Binding FileName}"
+                                            Width="*" />
+
+                                            <DataGridTextColumn Header="Type"
+                                            Binding="{Binding ArtifactType}"
+                                            Width="70" />
+
+                                            <DataGridTextColumn Header="Variant"
+                                            Binding="{Binding Variant}"
+                                            Width="70" />
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <CheckBox x:Name="AutoOpenFolderCheckBox"
+                                      Content="Open output folder when complete"
+                                      Margin="0,8,0,0"
+                                      IsChecked="True"/>
+
+                                    <Button x:Name="OpenOutputFolderButton"
+                                        Content="Open Output Folder"
+                                        Margin="0,8,0,0"
+                                        Height="32"
+                                        IsEnabled="False"
+                                        Click="OpenOutputFolder_Click"/>
+
+
                                 </StackPanel>
                             </ScrollViewer>
                         </TabItem>
@@ -208,21 +274,7 @@
                     <TextBox x:Name="ArtifactBatchDescriptionTextBox" Height="34" Margin="0,4,0,0" VerticalContentAlignment="Center" ToolTip="Example: Vendor quote package for Acme Manufacturing"/>
 
                 </StackPanel>
-                <StackPanel Grid.Column="2" Orientation="Horizontal"
-                    VerticalAlignment="Bottom"
-                    Margin="0,0,12,0">
-                    <ProgressBar x:Name="ArtifactProgressBar"
-                         Width="160"
-                         Height="14"
-                         IsIndeterminate="True"
-                         Visibility="Collapsed"
-                         Margin="0,0,8,0"/>
-
-                    <TextBlock x:Name="ArtifactProgressTextBlock"
-                       Text=""
-                       VerticalAlignment="Center"
-                       Foreground="#6B7280"/>
-                </StackPanel>
+                
 
                 <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Bottom">
                     <Button Content="Validate"

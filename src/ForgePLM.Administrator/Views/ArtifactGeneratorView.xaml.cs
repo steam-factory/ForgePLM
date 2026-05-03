@@ -1,12 +1,14 @@
 ﻿using ForgePLM.Administrator.Services;
+using ForgePLM.Contracts.Artifacts;
 using ForgePLM.Contracts.Customers;
 using ForgePLM.Contracts.Eco;
 using ForgePLM.Contracts.Projects;
-using ForgePLM.Contracts.Artifacts;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+
 
 
 namespace ForgePLM.Administrator.Views
@@ -15,6 +17,7 @@ namespace ForgePLM.Administrator.Views
     {
         public string ViewTitle => "Artifact Generator";
         private readonly ForgePlmAdminApiClient _client = new ForgePlmAdminApiClient();
+        private ArtifactBatchDto? _lastBatch;
 
         public ObservableCollection<ArtifactPartRowViewModel> EcoParts { get; }
             = new ObservableCollection<ArtifactPartRowViewModel>();
@@ -217,10 +220,27 @@ namespace ForgePLM.Administrator.Views
 
                 if (job.Status == "completed")
                 {
-                    var ticket = job.Result;
+                    _lastBatch = job.Result;
 
                     SetArtifactBusy(false,
-                        $"Created {ticket?.BatchCode} with {ticket?.Artifacts.Count ?? 0} artifact(s).");
+                        $"Created {_lastBatch?.BatchCode} with {_lastBatch?.Artifacts.Count ?? 0} artifact(s).");
+
+                    ArtifactResultsGrid.ItemsSource = _lastBatch?.Artifacts;
+                    ArtifactResultsGrid.Visibility = Visibility.Visible;
+
+                    OpenOutputFolderButton.IsEnabled = true;
+
+                    // 👇 NEW: conditional auto-open
+                    if (AutoOpenFolderCheckBox.IsChecked == true &&
+                        _lastBatch != null &&
+                        Directory.Exists(_lastBatch.OutputRootPath))
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = _lastBatch.OutputRootPath,
+                            UseShellExecute = true
+                        });
+                    }
                 }
                 else
                 {
@@ -240,7 +260,28 @@ namespace ForgePLM.Administrator.Views
                     MessageBoxImage.Error);
             }
         }
+        private void OpenOutputFolder_Click(object sender, RoutedEventArgs e)
+        {
+            if (_lastBatch == null || string.IsNullOrWhiteSpace(_lastBatch.OutputRootPath))
+            {
+                MessageBox.Show("No output folder is available yet.", "Artifact Generator");
+                return;
+            }
 
+            if (!Directory.Exists(_lastBatch.OutputRootPath))
+            {
+                MessageBox.Show(
+                    "Output folder was not found:\n\n" + _lastBatch.OutputRootPath,
+                    "Artifact Generator");
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = _lastBatch.OutputRootPath,
+                UseShellExecute = true
+            });
+        }
         private void SetArtifactBusy(bool isBusy, string message = "")
         {
             ArtifactProgressBar.Visibility = isBusy

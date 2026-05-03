@@ -22,6 +22,40 @@ public class ArtifactBatchService : IArtifactBatchService
 
         _jobStore = jobStore;
     }
+    private Task<ArtifactDto> ExportStlArtifactAsync(
+    SqlConnection conn,
+    SolidWorksArtifactExportService exporter,
+    ArtifactBatchHeader batchHeader,
+    ArtifactWorkItem item,
+    string variant,
+    string realOutputRoot,
+    CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException("STL export is not implemented yet.");
+    }
+
+    private Task<ArtifactDto> CopyNativeArtifactAsync(
+        SqlConnection conn,
+        ArtifactBatchHeader batchHeader,
+        ArtifactWorkItem item,
+        string variant,
+        string realOutputRoot,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException("SolidWorks Native output is not implemented yet.");
+    }
+
+    private Task<ArtifactDto> ExportPdfArtifactAsync(
+        SqlConnection conn,
+        SolidWorksArtifactExportService exporter,
+        ArtifactBatchHeader batchHeader,
+        ArtifactWorkItem item,
+        string variant,
+        string realOutputRoot,
+        CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException("PDF export is not implemented yet.");
+    }
 
     public Task<ArtifactBatchDto> GenerateArtifactBatchAsync(
         GenerateArtifactBatchRequest request,
@@ -62,12 +96,23 @@ public class ArtifactBatchService : IArtifactBatchService
         if (workItems.Count == 0)
             throw new InvalidOperationException("No matching ECO revisions were found for artifact generation.");
 
-        var stepOutputs = request.Outputs
-            .Where(x => string.Equals(x.OutputType, "STEP", StringComparison.OrdinalIgnoreCase))
-            .ToList();
+        var requestedOutputs = request.Outputs.ToList();
 
-        int totalSteps = workItems.Count * stepOutputs.Count;
+        int totalSteps = workItems.Count * requestedOutputs.Count;
+
         int completedSteps = 0;
+
+        string realOutputRoot = Path.Combine(
+        ProductionRootPath,
+        batchHeader.BatchCode);
+
+        Directory.CreateDirectory(realOutputRoot);
+
+            await UpdateBatchOutputPathAsync(
+                conn,
+                batchHeader.ArtifactBatchId,
+                realOutputRoot,
+                cancellationToken);
 
         if (trackProgress)
         {
@@ -84,12 +129,11 @@ public class ArtifactBatchService : IArtifactBatchService
 
         foreach (var item in workItems)
         {
-            foreach (var output in stepOutputs)
+            foreach (var output in requestedOutputs)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
+                string outputType = output.OutputType.Trim().ToUpperInvariant();
                 string variant = string.IsNullOrWhiteSpace(output.Variant)
-                    ? "AP214"
+                    ? string.Empty
                     : output.Variant.Trim();
 
                 if (trackProgress)
@@ -99,28 +143,28 @@ public class ArtifactBatchService : IArtifactBatchService
                         "processing",
                         completedSteps,
                         totalSteps,
-                        $"Exporting {item.DisplayCompositeCode} STEP {variant}...");
+                        $"Generating {item.DisplayCompositeCode} {outputType} {variant}...");
                 }
 
-                ArtifactDto artifact = await ExportStepArtifactAsync(
-                    exporter,
-                    batchHeader,
-                    item,
-                    variant,
-                    cancellationToken);
+                ArtifactDto artifact = outputType switch
+                {
+                    "STEP" => await ExportStepArtifactAsync(
+                        conn, exporter, batchHeader, item, variant, realOutputRoot, cancellationToken),
+
+                    "STL" => await ExportStlArtifactAsync(
+                        conn, exporter, batchHeader, item, variant, realOutputRoot, cancellationToken),
+
+                    "SW_NATIVE" => await CopyNativeArtifactAsync(
+                        conn, batchHeader, item, variant, realOutputRoot, cancellationToken),
+
+                    "PDF" => await ExportPdfArtifactAsync(
+                        conn, exporter, batchHeader, item, variant, realOutputRoot, cancellationToken),
+
+                    _ => throw new InvalidOperationException($"Unsupported output type: {outputType}")
+                };
 
                 artifacts.Add(artifact);
                 completedSteps++;
-
-                if (trackProgress)
-                {
-                    _jobStore.Update(
-                        jobId,
-                        "processing",
-                        completedSteps,
-                        totalSteps,
-                        $"Completed {item.DisplayCompositeCode} STEP {variant}.");
-                }
             }
         }
 
@@ -133,7 +177,7 @@ public class ArtifactBatchService : IArtifactBatchService
         EcoId: batchHeader.EcoId,
         BatchDescription: batchHeader.BatchDescription,
         BatchState: batchHeader.BatchState,
-        OutputRootPath: batchHeader.OutputRootPath,
+        OutputRootPath: realOutputRoot, // 👈 FIXED
         ZipFilePath: batchHeader.ZipFilePath,
         Artifacts: artifacts);
 
@@ -153,6 +197,8 @@ public class ArtifactBatchService : IArtifactBatchService
         {
             _jobStore.Complete(jobId, result);
         }
+
+
 
         return result;
 
@@ -179,39 +225,39 @@ public class ArtifactBatchService : IArtifactBatchService
         CancellationToken cancellationToken)
     {
         const string sql = @"
-INSERT INTO dbo.artifact_batches
-(
-    eco_id,
-    batch_description,
-    batch_state,
-    create_zip,
-    archive_previous,
-    output_root_path,
-    zip_file_path,
-    created_by,
-    created_utc
-)
-OUTPUT
-    INSERTED.artifact_batch_id,
-    INSERTED.batch_number,
-    INSERTED.batch_code,
-    INSERTED.eco_id,
-    INSERTED.batch_description,
-    INSERTED.batch_state,
-    INSERTED.output_root_path,
-    INSERTED.zip_file_path
-VALUES
-(
-    @eco_id,
-    @batch_description,
-    'created',
-    @create_zip,
-    @archive_previous,
-    @output_root_path,
-    NULL,
-    @created_by,
-    SYSUTCDATETIME()
-);";
+        INSERT INTO dbo.artifact_batches
+        (
+            eco_id,
+            batch_description,
+            batch_state,
+            create_zip,
+            archive_previous,
+            output_root_path,
+            zip_file_path,
+            created_by,
+            created_utc
+        )
+        OUTPUT
+            INSERTED.artifact_batch_id,
+            INSERTED.batch_number,
+            INSERTED.batch_code,
+            INSERTED.eco_id,
+            INSERTED.batch_description,
+            INSERTED.batch_state,
+            INSERTED.output_root_path,
+            INSERTED.zip_file_path
+        VALUES
+        (
+            @eco_id,
+            @batch_description,
+            'created',
+            @create_zip,
+            @archive_previous,
+            @output_root_path,
+            NULL,
+            @created_by,
+            SYSUTCDATETIME()
+        );";
 
         await using var cmd = new SqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@eco_id", request.EcoId);
@@ -240,10 +286,12 @@ VALUES
     }
 
     private async Task<ArtifactDto> ExportStepArtifactAsync(
+        SqlConnection conn,
         SolidWorksArtifactExportService exporter,
         ArtifactBatchHeader batchHeader,
         ArtifactWorkItem item,
         string variant,
+        string realOutputRoot,
         CancellationToken cancellationToken)
     {
         string sourceFilePath = Path.Combine(
@@ -255,10 +303,7 @@ VALUES
         if (!File.Exists(sourceFilePath))
             throw new FileNotFoundException("Source SolidWorks file was not found.", sourceFilePath);
 
-        string outputFolder = Path.Combine(
-            ProductionRootPath,
-            batchHeader.BatchCode,
-            "STEP");
+        string outputFolder = Path.Combine(realOutputRoot, "STEP");
 
         Directory.CreateDirectory(outputFolder);
 
@@ -267,17 +312,60 @@ VALUES
             $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT.step";
 
         string outputPath = Path.Combine(outputFolder, outputFileName);
+        string outputRootPath = Path.Combine(@"E:\ForgePLM\production", batchHeader.BatchCode);
 
+
+        //string realOutputRoot = Path.Combine(
+        //    @"E:\ForgePLM\production",
+        //    batchHeader.BatchCode);
+
+        Directory.CreateDirectory(realOutputRoot);
+
+        await UpdateBatchOutputPathAsync(
+            conn,
+            batchHeader.ArtifactBatchId,
+            realOutputRoot,
+            cancellationToken);
         await exporter.ExportStepAp214Async(sourceFilePath, outputPath);
 
-        return new ArtifactDto(
+        var fileInfo = new FileInfo(outputPath);
+
+        var tempArtifact = new ArtifactDto(
             ArtifactId: 0,
             RevisionId: item.RevisionId,
             ArtifactType: "STEP",
             Variant: variant,
             FileName: outputFileName,
             FilePath: outputPath,
-            ArtifactState: "created");
+            ArtifactState: "completed");
+
+        int artifactId = await InsertArtifactRecordAsync(
+            conn,
+            batchHeader.ArtifactBatchId,
+            tempArtifact,
+            fileInfo.Length,
+            fileHash: null,
+            cancellationToken);
+
+        return tempArtifact with { ArtifactId = artifactId };
+    }
+    private async Task UpdateBatchOutputPathAsync(
+    SqlConnection conn,
+    int artifactBatchId,
+    string outputRootPath,
+    CancellationToken cancellationToken)
+    {
+        const string sql = @"
+        UPDATE dbo.artifact_batches
+        SET output_root_path = @output_root_path
+        WHERE artifact_batch_id = @artifact_batch_id;";
+
+        await using var cmd = new SqlCommand(sql, conn);
+
+        cmd.Parameters.AddWithValue("@artifact_batch_id", artifactBatchId);
+        cmd.Parameters.AddWithValue("@output_root_path", outputRootPath);
+
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static string SanitizeFileName(string value)
@@ -289,6 +377,60 @@ VALUES
             value = value.Replace(c, '-');
 
         return value.Trim().TrimEnd('.');
+    }
+
+    private async Task<int> InsertArtifactRecordAsync(
+    SqlConnection conn,
+    int artifactBatchId,
+    ArtifactDto artifact,
+    long fileSizeBytes,
+    string? fileHash,
+    CancellationToken cancellationToken)
+    {
+        const string sql = @"
+    INSERT INTO dbo.artifacts
+    (
+        artifact_batch_id,
+        revision_id,
+        artifact_type,
+        variant,
+        file_name,
+        file_path,
+        artifact_state,
+        file_size_bytes,
+        file_hash,
+        created_utc
+    )
+    OUTPUT INSERTED.artifact_id
+    VALUES
+    (
+        @artifact_batch_id,
+        @revision_id,
+        @artifact_type,
+        @variant,
+        @file_name,
+        @file_path,
+        @artifact_state,
+        @file_size_bytes,
+        @file_hash,
+        SYSUTCDATETIME()
+    );";
+
+        await using var cmd = new SqlCommand(sql, conn);
+
+        cmd.Parameters.AddWithValue("@artifact_batch_id", artifactBatchId);
+        cmd.Parameters.AddWithValue("@revision_id", artifact.RevisionId);
+        cmd.Parameters.AddWithValue("@artifact_type", artifact.ArtifactType);
+        cmd.Parameters.AddWithValue("@variant", (object?)artifact.Variant ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@file_name", artifact.FileName);
+        cmd.Parameters.AddWithValue("@file_path", artifact.FilePath);
+        cmd.Parameters.AddWithValue("@artifact_state", artifact.ArtifactState);
+        cmd.Parameters.AddWithValue("@file_size_bytes", fileSizeBytes);
+        cmd.Parameters.AddWithValue("@file_hash", (object?)fileHash ?? DBNull.Value);
+
+        var result = await cmd.ExecuteScalarAsync(cancellationToken);
+
+        return Convert.ToInt32(result);
     }
 
     private async Task<List<ArtifactWorkItem>> ResolveArtifactWorkItemsAsync(
@@ -307,34 +449,34 @@ VALUES
             .ToList();
 
         var sql = $@"
-SELECT
-    e.eco_id,
-    e.eco_number,
-    e.eco_state,
+        SELECT
+            e.eco_id,
+            e.eco_number,
+            e.eco_state,
 
-    pr.project_id,
-    pr.project_code,
-    pr.project_name,
+            pr.project_id,
+            pr.project_code,
+            pr.project_name,
 
-    p.part_id,
-    p.category_code,
-    p.part_number_int,
+            p.part_id,
+            p.category_code,
+            p.part_number_int,
 
-    r.revision_id,
-    r.revision_code,
-    r.part_description,
-    r.revision_state,
-    p.document_type
-FROM dbo.revisions r
-INNER JOIN dbo.part_numbers p
-    ON p.part_id = r.part_id
-INNER JOIN dbo.eco e
-    ON e.eco_id = r.eco_id
-INNER JOIN dbo.projects pr
-    ON pr.project_id = e.project_id
-WHERE r.eco_id = @ecoId
-  AND r.revision_id IN ({string.Join(",", parameterNames)})
-ORDER BY p.category_code, p.part_number_int, r.revision_code;";
+            r.revision_id,
+            r.revision_code,
+            r.part_description,
+            r.revision_state,
+            p.document_type
+        FROM dbo.revisions r
+        INNER JOIN dbo.part_numbers p
+            ON p.part_id = r.part_id
+        INNER JOIN dbo.eco e
+            ON e.eco_id = r.eco_id
+        INNER JOIN dbo.projects pr
+            ON pr.project_id = e.project_id
+        WHERE r.eco_id = @ecoId
+          AND r.revision_id IN ({string.Join(",", parameterNames)})
+        ORDER BY p.category_code, p.part_number_int, r.revision_code;";
 
         await using var cmd = new SqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("@ecoId", ecoId);
