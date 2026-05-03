@@ -13,4 +13,8 @@ public interface IArtifactBatchService
         GenerateArtifactBatchRequest request,
         Guid jobId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ArtifactBatchDto>> GetArtifactBatchesByEcoAsync(
+        int ecoId,
+        CancellationToken cancellationToken = default);
 }

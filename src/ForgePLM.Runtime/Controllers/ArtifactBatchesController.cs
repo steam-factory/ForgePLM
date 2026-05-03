@@ -68,5 +68,17 @@ public class ArtifactBatchesController : ControllerBase
         return Ok(job);
     }
 
+    [HttpGet("by-eco/{ecoId:int}")]
+    public async Task<ActionResult<IReadOnlyList<ArtifactBatchDto>>> GetByEco(
+    int ecoId,
+    CancellationToken cancellationToken)
+    {
+        var result = await _artifactBatchService.GetArtifactBatchesByEcoAsync(
+            ecoId,
+            cancellationToken);
+
+        return Ok(result);
+    }
+
 
 }

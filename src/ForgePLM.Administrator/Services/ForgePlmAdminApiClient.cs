@@ -299,6 +299,17 @@ namespace ForgePLM.Administrator.Services
         }
 
 
+        public async Task<IReadOnlyList<ArtifactBatchDto>> GetArtifactBatchesByEcoAsync(
+        int ecoId,
+        CancellationToken cancellationToken = default)
+            {
+                return await _httpClient.GetFromJsonAsync<IReadOnlyList<ArtifactBatchDto>>(
+                    $"/api/artifact-batches/by-eco/{ecoId}",
+                    cancellationToken)
+                    ?? new List<ArtifactBatchDto>();
+        }
+
+
 
         private sealed record CustomerEnvelope(
             bool Success,

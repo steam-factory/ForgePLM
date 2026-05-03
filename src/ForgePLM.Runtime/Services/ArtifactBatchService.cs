@@ -724,6 +724,83 @@ public class ArtifactBatchService : IArtifactBatchService
 
         return results;
     }
+    // This method retrieves all artifact batches associated with a specific ECO, along with their related artifacts. It performs a LEFT JOIN between the artifact_batches and artifacts tables to get the batch information and any associated artifacts in a single query. The results are then grouped by batch to construct the final list of ArtifactBatchDto objects, each containing its corresponding list of ArtifactDto objects.
+    public async Task<IReadOnlyList<ArtifactBatchDto>> GetArtifactBatchesByEcoAsync(
+    int ecoId,
+    CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+        SELECT
+            b.artifact_batch_id,
+            b.batch_number,
+            b.batch_code,
+            b.eco_id,
+            b.batch_description,
+            b.batch_state,
+            b.output_root_path,
+            b.zip_file_path,
+
+            a.artifact_id,
+            a.revision_id,
+            a.artifact_type,
+            a.variant,
+            a.file_name,
+            a.file_path,
+            a.artifact_state
+        FROM dbo.artifact_batches b
+        LEFT JOIN dbo.artifacts a
+            ON a.artifact_batch_id = b.artifact_batch_id
+        WHERE b.eco_id = @eco_id
+        ORDER BY b.created_utc DESC, a.file_name;";
+
+        var batches = new Dictionary<int, List<ArtifactDto>>();
+        var headers = new Dictionary<int, ArtifactBatchDto>();
+
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync(cancellationToken);
+
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@eco_id", ecoId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            int batchId = reader.GetInt32(reader.GetOrdinal("artifact_batch_id"));
+
+            if (!headers.ContainsKey(batchId))
+            {
+                headers[batchId] = new ArtifactBatchDto(
+                    ArtifactBatchId: batchId,
+                    BatchNumber: Convert.ToInt64(reader["batch_number"]),
+                    BatchCode: reader["batch_code"] as string ?? string.Empty,
+                    EcoId: Convert.ToInt32(reader["eco_id"]),
+                    BatchDescription: reader["batch_description"] as string ?? string.Empty,
+                    BatchState: reader["batch_state"] as string ?? string.Empty,
+                    OutputRootPath: reader["output_root_path"] as string ?? string.Empty,
+                    ZipFilePath: reader["zip_file_path"] as string,
+                    Artifacts: new List<ArtifactDto>());
+
+                batches[batchId] = new List<ArtifactDto>();
+            }
+
+            if (reader["artifact_id"] != DBNull.Value)
+            {
+                batches[batchId].Add(new ArtifactDto(
+                    ArtifactId: Convert.ToInt32(reader["artifact_id"]),
+                    RevisionId: Convert.ToInt32(reader["revision_id"]),
+                    ArtifactType: reader["artifact_type"] as string ?? string.Empty,
+                    Variant: reader["variant"] as string ?? string.Empty,
+                    FileName: reader["file_name"] as string ?? string.Empty,
+                    FilePath: reader["file_path"] as string ?? string.Empty,
+                    ArtifactState: reader["artifact_state"] as string ?? string.Empty));
+            }
+        }
+
+        return headers.Values
+            .Select(b => b with { Artifacts = batches[b.ArtifactBatchId] })
+            .ToList();
+    }
 
 
     private sealed class ArtifactBatchHeader

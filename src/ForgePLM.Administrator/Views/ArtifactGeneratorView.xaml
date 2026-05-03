@@ -252,7 +252,100 @@
                             <Grid Margin="8"><TextBlock Text="eDrawings preview placeholder" Foreground="#6B7280" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
                         </TabItem>
                         <TabItem Header="History">
-                            <Grid Margin="8"><TextBlock Text="Artifact history placeholder" Foreground="#6B7280" HorizontalAlignment="Center" VerticalAlignment="Center"/></Grid>
+                            <Grid Margin="8">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="10"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Grid.Row="0">
+                                    <TextBlock Text="Artifact Batch History"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       DockPanel.Dock="Left"/>
+
+                                    <Button x:Name="RefreshArtifactHistoryButton"
+                                    Content="Refresh"
+                                    Width="80"
+                                    Height="28"
+                                    DockPanel.Dock="Right"
+                                    Click="RefreshArtifactHistoryButton_Click"/>
+                                </DockPanel>
+
+                                <DataGrid x:Name="ArtifactHistoryGrid"
+                                      Grid.Row="2"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      IsReadOnly="True"
+                                      SelectionMode="Single"
+                                      RowHeight="30"
+                                      AlternatingRowBackground="#F5F7FA"
+                                      AlternationCount="2"
+                                        SelectionChanged="ArtifactHistoryGrid_SelectionChanged">
+                                    <DataGrid.Resources>
+                                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2563EB"/>
+                                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#2563EB"/>
+                                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+                                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
+                                    </DataGrid.Resources>
+
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Batch"
+                                Binding="{Binding BatchCode}"
+                                Width="90"/>
+
+                                        <DataGridTextColumn Header="Description"
+                                Binding="{Binding BatchDescription}"
+                                Width="*"/>
+
+                                        <DataGridTextColumn Header="State"
+                                Binding="{Binding BatchState}"
+                                Width="90"/>
+
+                                        <DataGridTextColumn Header="Artifacts"
+                                Binding="{Binding Artifacts.Count}"
+                                Width="80"/>
+
+                                        <DataGridTextColumn Header="ZIP"
+                                Binding="{Binding ZipStatus}"
+                                Width="70"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <Border Grid.Row="4"
+                                Padding="10"
+                                CornerRadius="8"
+                                BorderBrush="#D0D7DE"
+                                BorderThickness="1"
+                                Background="#FAFBFC">
+                                                        <StackPanel>
+                                                            <TextBlock x:Name="ArtifactHistorySummaryTextBlock"
+                                           Text="Select a batch to view details."
+                                           Foreground="#6B7280"
+                                           TextWrapping="Wrap"/>
+
+                                                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                                <Button x:Name="OpenHistoryFolderButton"
+                                            Content="Open Folder"
+                                            Width="110"
+                                            Height="30"
+                                            IsEnabled="False"
+                                            Click="OpenHistoryFolderButton_Click"/>
+
+                                                                <Button x:Name="OpenHistoryZipButton"
+                                            Content="Open ZIP"
+                                            Width="90"
+                                            Height="30"
+                                            Margin="8,0,0,0"
+                                            IsEnabled="False"
+                                            Click="OpenHistoryZipButton_Click"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                         </TabItem>
                     </TabControl>
                 </DockPanel>

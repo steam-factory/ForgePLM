@@ -1,4 +1,5 @@
-﻿using ForgePLM.Administrator.Services;
+﻿using ForgePLM.Administrator.Models;
+using ForgePLM.Administrator.Services;
 using ForgePLM.Contracts.Artifacts;
 using ForgePLM.Contracts.Customers;
 using ForgePLM.Contracts.Eco;
@@ -19,6 +20,7 @@ namespace ForgePLM.Administrator.Views
         public string ViewTitle => "Artifact Generator";
         private readonly ForgePlmAdminApiClient _client = new ForgePlmAdminApiClient();
         private ArtifactBatchDto? _lastBatch;
+        private ArtifactBatchHistoryRowViewModel? _selectedHistoryBatch;
 
         public ObservableCollection<ArtifactPartRowViewModel> EcoParts { get; }
             = new ObservableCollection<ArtifactPartRowViewModel>();
@@ -52,6 +54,7 @@ namespace ForgePLM.Administrator.Views
             if (_selectedEco == null)
                 return;
 
+
             ArtifactEcoStateTextBox.Text = _selectedEco.EcoState ?? string.Empty;
 
             var rows = await _client.GetArtifactEcoContentsAsync(_selectedEco.EcoId);
@@ -74,6 +77,7 @@ namespace ForgePLM.Administrator.Views
                     DisplayCompositeCode = row.DisplayCompositeCode
                 });
             }
+            await LoadArtifactHistoryAsync(_selectedEco.EcoId);
         }
 
         //private string BuildDevFilePath(PartRevisionItemDto row)
@@ -101,6 +105,79 @@ namespace ForgePLM.Administrator.Views
             ArtifactCustomerComboBox.DisplayMemberPath = "CustomerName";
             ArtifactCustomerComboBox.SelectedValuePath = "CustomerId";
             ArtifactCustomerComboBox.ItemsSource = customers;
+        }
+
+        private async Task LoadArtifactHistoryAsync(int ecoId)
+        {
+            var batches = await _client.GetArtifactBatchesByEcoAsync(ecoId);
+
+            ArtifactHistoryGrid.ItemsSource = batches
+                .Select(x => new ArtifactBatchHistoryRowViewModel(x))
+                .ToList();
+
+            ArtifactHistorySummaryTextBlock.Text = batches.Any()
+                ? $"{batches.Count} artifact batch(es) found."
+                : "No artifact batches yet.";
+
+            OpenHistoryFolderButton.IsEnabled = false;
+            OpenHistoryZipButton.IsEnabled = false;
+        }
+
+        private async void RefreshArtifactHistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selectedEco == null)
+                return;
+
+            await LoadArtifactHistoryAsync(_selectedEco.EcoId);
+        }
+
+        private void ArtifactHistoryGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            _selectedHistoryBatch = ArtifactHistoryGrid.SelectedItem as ArtifactBatchHistoryRowViewModel;
+
+            if (_selectedHistoryBatch == null)
+                return;
+
+            var batch = _selectedHistoryBatch.Batch;
+
+            ArtifactHistorySummaryTextBlock.Text =
+                $"{batch.BatchCode}: {batch.BatchDescription}\n" +
+                $"{batch.Artifacts.Count} artifact(s)";
+
+            OpenHistoryFolderButton.IsEnabled =
+                Directory.Exists(batch.OutputRootPath);
+
+            OpenHistoryZipButton.IsEnabled =
+                !string.IsNullOrWhiteSpace(batch.ZipFilePath) &&
+                File.Exists(batch.ZipFilePath);
+        }
+
+        private void OpenHistoryFolderButton_Click(object sender, RoutedEventArgs e)
+        {
+            var path = _selectedHistoryBatch?.Batch.OutputRootPath;
+
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                return;
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true
+            });
+        }
+
+        private void OpenHistoryZipButton_Click(object sender, RoutedEventArgs e)
+        {
+            var path = _selectedHistoryBatch?.Batch.ZipFilePath;
+
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                return;
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true
+            });
         }
 
         private async void ArtifactCustomerComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -318,7 +395,8 @@ namespace ForgePLM.Administrator.Views
             ValidateButton.IsEnabled = !isBusy;
         }
 
-        
+
+
 
         private static string SanitizeFileName(string value)
         {
