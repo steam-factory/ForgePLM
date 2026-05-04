@@ -1,23 +1,39 @@
 ﻿using ForgePLM.Administrator.Services;
 using ForgePLM.Administrator.Views;
+using Microsoft.Extensions.Configuration;
 using System;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Input;
+using System.IO;
 
 namespace ForgePLM.Administrator
 {
     public partial class MainWindow : Window
     {
-        private readonly ForgePlmAdminApiClient _apiClient = new();
+        private readonly ForgePlmAdminApiClient _apiClient;
+        private readonly IConfiguration _config;
 
         public MainWindow()
         {
             InitializeComponent();
-            VersionTextBlock.Text = BuildInfo.DisplayVersion;
-            VersionTextBlock.ToolTip =
-                $"Built: {BuildInfo.BuildDate}\nCommit: {BuildInfo.Commit}";
-            ShowView(new DashboardView());
-            Loaded += MainWindow_Loaded;
+
+            _config = new ConfigurationBuilder()
+                .AddJsonFile("E:\\ForgePLM\\config\\appsettings.json",
+                    optional: false,
+                    reloadOnChange: true)
+                .Build();
+
+            var baseUrl = _config["Api:BaseUrl"] ?? "http://localhost:5269";
+
+            _apiClient = new ForgePlmAdminApiClient(new HttpClient
+            {
+                BaseAddress = new Uri(baseUrl)
+            });
+
+            ShowView(new DashboardView()); // or new DashboardView()
+
+            System.Diagnostics.Debug.WriteLine("MainWindow constructor finished");
         }
         private void ShowView(object view)
         {
@@ -52,9 +68,9 @@ namespace ForgePLM.Administrator
                 ServiceStatusTextBlock.Text = "Service: Online";
             }
             catch
-            {
-                ServiceStatusTextBlock.Text = "Service: Offline";
-            }
+            { }
+                
+
         }
 
         private void DashboardButton_Click(object sender, RoutedEventArgs e)
@@ -79,7 +95,8 @@ namespace ForgePLM.Administrator
 
         private void ArtifactGeneratorButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowView(new ArtifactGeneratorView());
+            var view = new ArtifactGeneratorView(_apiClient, _config);
+            ShowView(view);
         }
     }
 }

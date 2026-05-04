@@ -1,17 +1,18 @@
 ﻿ <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-		<LangVersion>10.0</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-  </PropertyGroup>
-	 <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-  <PublishDir>E:\ForgePLM\run\ForgePLM.Administrator\</PublishDir>
-</PropertyGroup>		 
-	 
+	 <PropertyGroup>
+		 <OutputType>WinExe</OutputType>
+		 <TargetFramework>net10.0-windows</TargetFramework>
+		 <LangVersion>10.0</LangVersion>
+		 <Nullable>enable</Nullable>
+		 <ImplicitUsings>enable</ImplicitUsings>
+		 <UseWPF>true</UseWPF>
+		 <UseWindowsForms>true</UseWindowsForms>
+	 </PropertyGroup>
+
+	 <ItemGroup>
+		 <Using Remove="System.Windows.Forms" />
+	 </ItemGroup>
 
   <ItemGroup>
     <None Remove="Assets\forgeplm.ico" />
@@ -24,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\ForgePLM.Preview.Edrawings\ForgePLM.Preview.Edrawings.csproj" />
     <ProjectReference Include="..\ForgePLM.Contracts\ForgePLM.Contracts.csproj" />
   </ItemGroup>
 
@@ -75,7 +77,15 @@
 
 
 	 <ItemGroup>
+	   <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.7" />
+	   <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.7" />
+	   <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.7" />
 	   <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+	 </ItemGroup>
+
+
+	 <ItemGroup>
+	   
 	 </ItemGroup>
 	 <Target Name="WriteBuildInfo" BeforeTargets="BeforeBuild">
       <PropertyGroup>

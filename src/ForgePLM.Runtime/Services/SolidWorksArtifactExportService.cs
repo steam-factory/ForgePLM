@@ -276,12 +276,6 @@ namespace ForgePLM.Runtime.Services
             throw new InvalidOperationException("Unsupported SolidWorks document type: " + ext);
         }
 
-        private static string SanitizeFileName(string value)
-        {
-            foreach (char c in Path.GetInvalidFileNameChars())
-                value = value.Replace(c, '-');
-
-            return value.Trim();
-        }
+        
     }
 }

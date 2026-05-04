@@ -16,7 +16,7 @@ namespace ForgePLM.Administrator.Views
     
     public partial class CrmLiteView : UserControl, INavigationView
     {
-        private readonly ForgePlmAdminApiClient _apiClient = new();
+        private readonly ForgePlmAdminApiClient _apiClient;
 
         public string ViewTitle => "CRM Lite";
         private readonly ObservableCollection<CustomerDto> _customers = new();

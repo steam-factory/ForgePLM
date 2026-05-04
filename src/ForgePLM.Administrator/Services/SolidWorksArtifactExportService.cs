@@ -64,29 +64,5 @@ namespace ForgePLM.Administrator.Services
             [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.IUnknown)] out object? ppunk);
 
 
-
-        private static int GetDocumentType(string filePath)
-        {
-            string ext = Path.GetExtension(filePath).ToLowerInvariant();
-
-            if (ext == ".sldprt")
-                return (int)SwConst.swDocumentTypes_e.swDocPART;
-
-            if (ext == ".sldasm")
-                return (int)SwConst.swDocumentTypes_e.swDocASSEMBLY;
-
-            if (ext == ".slddrw")
-                return (int)SwConst.swDocumentTypes_e.swDocDRAWING;
-
-            throw new InvalidOperationException("Unsupported SolidWorks document type: " + ext);
-        }
-
-        private static string SanitizeFileName(string value)
-        {
-            foreach (char c in Path.GetInvalidFileNameChars())
-                value = value.Replace(c, '-');
-
-            return value.Trim();
-        }
     }
 }

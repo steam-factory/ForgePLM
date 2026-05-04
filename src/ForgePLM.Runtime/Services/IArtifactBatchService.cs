@@ -17,4 +17,8 @@ public interface IArtifactBatchService
     Task<IReadOnlyList<ArtifactBatchDto>> GetArtifactBatchesByEcoAsync(
         int ecoId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<ArtifactDto>> GetArtifactsByRevisionAsync(
+        int revisionId,
+    CancellationToken cancellationToken = default);
 }

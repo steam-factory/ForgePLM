@@ -26,6 +26,9 @@
 	    <EmbedInteropTypes>true</EmbedInteropTypes>
 	  </COMReference>
 	</ItemGroup>
+	<ItemGroup>
+	  <None Include="appsettings.json" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />

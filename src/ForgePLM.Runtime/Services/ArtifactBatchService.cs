@@ -12,17 +12,20 @@ public class ArtifactBatchService : IArtifactBatchService
 
     private readonly string _connectionString;
     private readonly IArtifactGenerationJobStore _jobStore;
+    private readonly IConfiguration _config;
 
     public ArtifactBatchService(
-        IConfiguration configuration,
-        IArtifactGenerationJobStore jobStore)
+    IConfiguration configuration,
+    IArtifactGenerationJobStore jobStore)
     {
+        _config = configuration ?? throw new ArgumentNullException(nameof(configuration));
+
         _connectionString = configuration.GetConnectionString("ForgePlmDb")
             ?? throw new InvalidOperationException("Missing connection string: ForgePlmDb");
 
         _jobStore = jobStore;
     }
-    
+
     public Task<ArtifactBatchDto> GenerateArtifactBatchAsync(
         GenerateArtifactBatchRequest request,
         CancellationToken cancellationToken = default)
@@ -195,24 +198,40 @@ public class ArtifactBatchService : IArtifactBatchService
 
     }
 
-    private static string BuildSourceFilePath(ArtifactWorkItem item)
+    private string BuildSourceFilePath(ArtifactWorkItem item)
     {
-        string extension = item.DocumentType.ToUpperInvariant() switch
-        {
-            "ASSEMBLY" => ".SLDASM",
-            "DRAWING" => ".SLDDRW",
-            _ => ".SLDPRT"
-        };
+        var root = GetRequiredConfig("Vault:RootPath");
+        var projectsFolder = GetRequiredConfig("Vault:ProjectsFolder");
+        var devFolder = GetRequiredConfig("Vault:DevelopmentFolder");
+
+        var extension = GetSolidWorksExtension(item.DocumentType);
 
         return Path.Combine(
-            @"E:\SteamFactory_DEV\Projects",
+            root,
+            projectsFolder,
             $"{item.ProjectCode} - {item.ProjectName}",
-            "development",
+            devFolder,
             $"{item.DisplayPartNumber}{extension}");
     }
+    private string GetRequiredConfig(string key)
+    {
+        return _config[key]
+            ?? throw new InvalidOperationException($"Missing configuration value: {key}");
+    }
 
+    private static string GetSolidWorksExtension(string? documentType)
+    {
+        return documentType?.Trim().ToUpperInvariant() switch
+        {
+            "PART" => ".SLDPRT",
+            "ASSEMBLY" => ".SLDASM",
+            "DRAWING" => ".SLDDRW",
+            _ => throw new InvalidOperationException(
+                $"Unsupported SolidWorks document_type: '{documentType}'")
+        };
+    }
     //exports
-    
+
     // For SW_NATIVE, we simply copy the original SolidWorks file to the output location and record it as an artifact, without any conversion.
     private async Task<ArtifactDto> CopyNativeArtifactAsync(
         SqlConnection conn,
@@ -222,6 +241,7 @@ public class ArtifactBatchService : IArtifactBatchService
         string realOutputRoot,
         CancellationToken cancellationToken)
     {
+
         string sourceFilePath = BuildSourceFilePath(item);
         string outputFolder = Path.Combine(realOutputRoot, "SW_NATIVE");
 
@@ -269,11 +289,12 @@ public class ArtifactBatchService : IArtifactBatchService
         string realOutputRoot,
         CancellationToken cancellationToken)
     {
+        var ext = GetSolidWorksExtension(item.DocumentType);
         string sourceFilePath = Path.Combine(
             DevelopmentProjectsRootPath,
             $"{item.ProjectCode} - {item.ProjectName}",
             "development",
-            $"{item.DisplayPartNumber}.SLDPRT");
+            $"{item.DisplayPartNumber}{ext}");
 
         if (!File.Exists(sourceFilePath))
             throw new FileNotFoundException("Source SolidWorks file was not found.", sourceFilePath);
@@ -670,6 +691,7 @@ public class ArtifactBatchService : IArtifactBatchService
             p.part_id,
             p.category_code,
             p.part_number_int,
+            p.document_type,
 
             r.revision_id,
             r.revision_code,
@@ -801,6 +823,50 @@ public class ArtifactBatchService : IArtifactBatchService
             .Select(b => b with { Artifacts = batches[b.ArtifactBatchId] })
             .ToList();
     }
+
+    public async Task<IReadOnlyList<ArtifactDto>> GetArtifactsByRevisionAsync(
+    int revisionId,
+    CancellationToken cancellationToken = default)
+    {
+        const string sql = @"
+        SELECT
+            artifact_id,
+            revision_id,
+            artifact_type,
+            variant,
+            file_name,
+            file_path,
+            artifact_state
+        FROM dbo.artifacts
+        WHERE revision_id = @revision_id
+        ORDER BY created_utc DESC, file_name;";
+
+        var artifacts = new List<ArtifactDto>();
+
+        await using var conn = new SqlConnection(_connectionString);
+        await conn.OpenAsync(cancellationToken);
+
+        await using var cmd = new SqlCommand(sql, conn);
+        cmd.Parameters.AddWithValue("@revision_id", revisionId);
+
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            artifacts.Add(new ArtifactDto(
+                ArtifactId: Convert.ToInt32(reader["artifact_id"]),
+                RevisionId: Convert.ToInt32(reader["revision_id"]),
+                ArtifactType: reader["artifact_type"] as string ?? string.Empty,
+                Variant: reader["variant"] as string ?? string.Empty,
+                FileName: reader["file_name"] as string ?? string.Empty,
+                FilePath: reader["file_path"] as string ?? string.Empty,
+                ArtifactState: reader["artifact_state"] as string ?? string.Empty));
+        }
+
+        return artifacts;
+    }
+
+
 
 
     private sealed class ArtifactBatchHeader

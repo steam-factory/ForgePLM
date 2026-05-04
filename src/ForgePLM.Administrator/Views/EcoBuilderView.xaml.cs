@@ -8,14 +8,14 @@ using ForgePLM.Contracts.Revisions;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
+using Media = System.Windows.Media;
 
 
 namespace ForgePLM.Administrator.Views
 {
     public partial class EcoBuilderView : UserControl, INavigationView
     {
-        private readonly ForgePlmAdminApiClient _apiClient = new();
+        private readonly ForgePlmAdminApiClient _apiClient;
 
         private readonly ObservableCollection<CustomerDto> _customers = new();
         private readonly ObservableCollection<ProjectDto> _projects = new();
@@ -83,28 +83,28 @@ namespace ForgePLM.Administrator.Views
             switch (state)
             {
                 case "Development":
-                    EcoStateBorder.Background = Brushes.DodgerBlue;
-                    EcoStateTextBlock.Foreground = Brushes.White;
+                    EcoStateBorder.Background = Media.Brushes.DodgerBlue;
+                    EcoStateTextBlock.Foreground = Media.Brushes.White;
                     break;
 
                 case "Staged":
-                    EcoStateBorder.Background = Brushes.Orange;
-                    EcoStateTextBlock.Foreground = Brushes.Black;
+                    EcoStateBorder.Background = Media.Brushes.Orange;
+                    EcoStateTextBlock.Foreground = Media.Brushes.Black;
                     break;
 
                 case "Released":
-                    EcoStateBorder.Background = Brushes.ForestGreen;
-                    EcoStateTextBlock.Foreground = Brushes.White;
+                    EcoStateBorder.Background = Media.Brushes.ForestGreen;
+                    EcoStateTextBlock.Foreground = Media.Brushes.White;
                     break;
 
                 case "Cancelled":
-                    EcoStateBorder.Background = Brushes.Gray;
-                    EcoStateTextBlock.Foreground = Brushes.Black;
+                    EcoStateBorder.Background = Media.Brushes.Gray;
+                    EcoStateTextBlock.Foreground = Media.Brushes.Black;
                     break;
 
                 default:
-                    EcoStateBorder.Background = Brushes.Transparent;
-                    EcoStateTextBlock.Foreground = Brushes.Black;
+                    EcoStateBorder.Background = Media.Brushes.Transparent;
+                    EcoStateTextBlock.Foreground = Media.Brushes.Black;
                     break;
             }
         }
@@ -116,8 +116,8 @@ namespace ForgePLM.Administrator.Views
 
             RevisionFamilyTextBlock.Text = "";
             EcoStateTextBlock.Text = "";
-            EcoStateBorder.Background = Brushes.Transparent;
-            EcoStateTextBlock.Foreground = Brushes.Black;
+            EcoStateBorder.Background = Media.Brushes.Transparent;
+            EcoStateTextBlock.Foreground = Media.Brushes.Black;
 
             if (_selectedProject is null)
                 return;

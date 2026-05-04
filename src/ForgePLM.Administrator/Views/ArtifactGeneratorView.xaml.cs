@@ -4,12 +4,15 @@ using ForgePLM.Contracts.Artifacts;
 using ForgePLM.Contracts.Customers;
 using ForgePLM.Contracts.Eco;
 using ForgePLM.Contracts.Projects;
+using Microsoft.Extensions.Configuration;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
+using System.Xml.Linq;
+using static System.Net.Mime.MediaTypeNames;
+using Media = System.Windows.Media;
 
 
 
@@ -18,16 +21,27 @@ namespace ForgePLM.Administrator.Views
     public partial class ArtifactGeneratorView : UserControl, INavigationView
     {
         public string ViewTitle => "Artifact Generator";
-        private readonly ForgePlmAdminApiClient _client = new ForgePlmAdminApiClient();
+        private readonly ForgePlmAdminApiClient _client;
         private ArtifactBatchDto? _lastBatch;
         private ArtifactBatchHistoryRowViewModel? _selectedHistoryBatch;
+        private readonly ForgePlmAdminApiClient _apiClient;
+        private bool _isPreviewMode;
+        private ArtifactPartRowViewModel? _pendingPreviewPart;
+
 
         public ObservableCollection<ArtifactPartRowViewModel> EcoParts { get; }
             = new ObservableCollection<ArtifactPartRowViewModel>();
 
-        public ArtifactGeneratorView()
+        private readonly IConfiguration _config;
+
+        public ArtifactGeneratorView(
+            ForgePlmAdminApiClient apiClient,
+            IConfiguration config)
         {
             InitializeComponent();
+
+            _apiClient = apiClient;
+            _config = config;
 
             ArtifactPartsGrid.ItemsSource = EcoParts;
 
@@ -46,38 +60,19 @@ namespace ForgePLM.Administrator.Views
 
         private EcoDto? _selectedEco;
 
-        private async void ArtifactEcoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void ArtifactPartsGrid_SelectionChanged(
+            object sender,
+            SelectionChangedEventArgs e)
         {
-            EcoParts.Clear();
-
-            _selectedEco = ArtifactEcoComboBox.SelectedItem as EcoDto;
-            if (_selectedEco == null)
+            if (ArtifactPartsGrid.SelectedItem is not ArtifactPartRowViewModel part)
                 return;
 
+            _pendingPreviewPart = part;
 
-            ArtifactEcoStateTextBox.Text = _selectedEco.EcoState ?? string.Empty;
+            if (!_isPreviewMode)
+                return;
 
-            var rows = await _client.GetArtifactEcoContentsAsync(_selectedEco.EcoId);
-
-            foreach (var row in rows)
-            {
-                EcoParts.Add(new ArtifactPartRowViewModel
-                {
-                    IsSelected = false,
-
-                    EcoId = _selectedEco.EcoId,
-                    PartId = row.PartId,
-                    RevisionId = row.RevisionId,
-
-                    PartNumber = row.DisplayPartNumber,
-                    Revision = row.RevisionCode.ToString(),
-                    Description = row.Description ?? string.Empty,
-                    RevisionState = row.RevisionState ?? string.Empty,
-                    DocumentType = row.DocumentType ?? string.Empty,
-                    DisplayCompositeCode = row.DisplayCompositeCode
-                });
-            }
-            await LoadArtifactHistoryAsync(_selectedEco.EcoId);
+            await LoadPreviewForPartAsync(part);
         }
 
         //private string BuildDevFilePath(PartRevisionItemDto row)
@@ -90,6 +85,7 @@ namespace ForgePLM.Administrator.Views
 
         private async void ArtifactGeneratorView_Loaded(object sender, RoutedEventArgs e)
         {
+            System.Diagnostics.Debug.WriteLine("ArtifactGeneratorView_Loaded fired");
             await LoadCustomersAsync();
         }
 
@@ -100,7 +96,7 @@ namespace ForgePLM.Administrator.Views
             ArtifactProjectComboBox.ItemsSource = null;
             ArtifactEcoComboBox.ItemsSource = null;
 
-            var customers = await _client.GetCustomersAsync();
+            var customers = await _apiClient.GetCustomersAsync();
 
             ArtifactCustomerComboBox.DisplayMemberPath = "CustomerName";
             ArtifactCustomerComboBox.SelectedValuePath = "CustomerId";
@@ -109,7 +105,7 @@ namespace ForgePLM.Administrator.Views
 
         private async Task LoadArtifactHistoryAsync(int ecoId)
         {
-            var batches = await _client.GetArtifactBatchesByEcoAsync(ecoId);
+            var batches = await _apiClient.GetArtifactBatchesByEcoAsync(ecoId);
 
             ArtifactHistoryGrid.ItemsSource = batches
                 .Select(x => new ArtifactBatchHistoryRowViewModel(x))
@@ -191,7 +187,7 @@ namespace ForgePLM.Administrator.Views
             if (customer == null)
                 return;
 
-            var projects = await _client.GetProjectsByCustomerAsync(customer.CustomerId);
+            var projects = await _apiClient.GetProjectsByCustomerAsync(customer.CustomerId);
 
             ArtifactProjectComboBox.DisplayMemberPath = "ProjectName";
             ArtifactProjectComboBox.SelectedValuePath = "ProjectId";
@@ -208,7 +204,7 @@ namespace ForgePLM.Administrator.Views
             if (project == null)
                 return;
 
-            var ecos = await _client.GetEcosByProjectAsync(project.ProjectId);
+            var ecos = await _apiClient.GetEcosByProjectAsync(project.ProjectId);
 
             ArtifactEcoComboBox.DisplayMemberPath = "EcoNumber";
             ArtifactEcoComboBox.SelectedValuePath = "EcoId";
@@ -217,7 +213,7 @@ namespace ForgePLM.Administrator.Views
 
         private async void GenerateOutputsButton_Click(object sender, RoutedEventArgs e)
         {
-            ArtifactProgressBar.Foreground = Brushes.SteelBlue;
+            ArtifactProgressBar.Foreground = Media.Brushes.SteelBlue;
             ArtifactProgressBar.Value = 0;
             ArtifactProgressTextBlock.Text = "";
 
@@ -280,7 +276,7 @@ namespace ForgePLM.Administrator.Views
                 Outputs: outputs
             );
 
-                var job = await _client.StartArtifactGenerationJobAsync(request);
+                var job = await _apiClient.StartArtifactGenerationJobAsync(request);
 
                 SetArtifactBusy(true, job.Message);
 
@@ -289,7 +285,7 @@ namespace ForgePLM.Administrator.Views
                 {
                     await Task.Delay(750);
 
-                    job = await _client.GetArtifactGenerationJobAsync(job.JobId);
+                    job = await _apiClient.GetArtifactGenerationJobAsync(job.JobId);
 
                     ArtifactProgressBar.IsIndeterminate = job.TotalSteps <= 0;
                     ArtifactProgressBar.Maximum = Math.Max(job.TotalSteps, 1);
@@ -307,8 +303,8 @@ namespace ForgePLM.Administrator.Views
                     ArtifactProgressBar.Maximum = 1;
                     ArtifactProgressBar.Value = 1;
 
-                    ArtifactProgressBar.Foreground = new SolidColorBrush(
-                        (Color)ColorConverter.ConvertFromString("#16A34A")); // green
+                    ArtifactProgressBar.Foreground = new Media.SolidColorBrush(
+                        (Media.Color)Media.ColorConverter.ConvertFromString("#16A34A")); // green
 
                     // ✅ Clear, visible completion message
                     ArtifactProgressTextBlock.Text =
@@ -361,6 +357,8 @@ namespace ForgePLM.Administrator.Views
                     MessageBoxImage.Error);
             }
         }
+
+
         private void OpenOutputFolder_Click(object sender, RoutedEventArgs e)
         {
             if (_lastBatch == null || string.IsNullOrWhiteSpace(_lastBatch.OutputRootPath))
@@ -395,6 +393,230 @@ namespace ForgePLM.Administrator.Views
             ValidateButton.IsEnabled = !isBusy;
         }
 
+        private Task<string?> ResolvePreviewPathAsync(
+         ArtifactPartRowViewModel part,
+         CancellationToken cancellationToken = default)
+        {
+            var ext = GetSolidWorksExtension(part.DocumentType);
+            var vault = _config.GetSection("Vault");
+
+            var root = vault["RootPath"]
+                ?? throw new InvalidOperationException("Vault:RootPath is missing");
+
+            var projects = vault["ProjectsFolder"]
+                ?? throw new InvalidOperationException("Vault:ProjectsFolder is missing");
+
+            var dev = vault["DevelopmentFolder"]
+                ?? throw new InvalidOperationException("Vault:DevelopmentFolder is missing");
+
+            var filePath = Path.Combine(
+                root,
+                projects,
+                $"{part.ProjectCode} - {part.ProjectName}",
+                dev,
+                $"{part.PartNumber}{ext}");
+            System.Diagnostics.Debug.WriteLine($"Preview path: {filePath}");
+            System.Diagnostics.Debug.WriteLine($"Exists: {File.Exists(filePath)}");
+            return Task.FromResult(File.Exists(filePath) ? filePath : null);
+        }
+
+        private static string GetSolidWorksExtension(string? documentType)
+        {
+            return documentType?.Trim().ToUpperInvariant() switch
+            {
+                "PART" => ".SLDPRT",
+                "ASSEMBLY" => ".SLDASM",
+                "DRAWING" => ".SLDDRW",
+                _ => throw new InvalidOperationException(
+                    $"Unsupported document_type: '{documentType}'")
+            };
+        }
+
+        private static int GetPreviewPriority(ArtifactDto artifact)
+        {
+            var ext = Path.GetExtension(
+                artifact.FilePath ?? artifact.FileName ?? "")
+                .ToLowerInvariant();
+
+            return ext switch
+            {
+                ".sldprt" or ".sldasm" or ".slddrw" => 0, // best (native)
+                ".eprt" or ".easm" or ".edrw" => 1,       // eDrawings
+                ".step" or ".stp" => 2,                   // neutral CAD
+                ".stl" => 3,                              // mesh fallback
+                ".pdf" => 4,                              // drawings
+                _ => 99                                   // unknown
+            };
+        }
+
+
+       
+        private void EnterPreviewMode()
+        {
+            _isPreviewMode = true;
+
+            ArtifactPartsGrid.SelectedItems.Clear();
+            ArtifactPartsGrid.SelectionMode = DataGridSelectionMode.Single;
+            ArtifactPartsGrid.SelectionUnit = DataGridSelectionUnit.FullRow;
+
+            SetArtifactPartsSelectionColor("#F97316"); // orange
+        }
+
+        private void SetArtifactPartsSelectionColor(string hex)
+        {
+            var color = (System.Windows.Media.Color)
+                System.Windows.Media.ColorConverter.ConvertFromString(hex);
+
+            var brush = new System.Windows.Media.SolidColorBrush(color);
+
+            ArtifactPartsGrid.Resources["ArtifactPartsSelectedBrush"] = brush;
+            ArtifactPartsGrid.Resources[System.Windows.SystemColors.HighlightBrushKey] = brush;
+            ArtifactPartsGrid.Resources[System.Windows.SystemColors.InactiveSelectionHighlightBrushKey] = brush;
+        }
+        private async Task LoadPreviewForPartAsync(ArtifactPartRowViewModel part)
+        {
+            var filePath = await ResolvePreviewPathAsync(part);
+
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"No preview artifact found for RevisionId={part.RevisionId}");
+                return;
+            }
+
+            EDrawingsPreview.OpenFile(filePath);
+        }
+
+        private void ExitPreviewMode()
+        {
+            _isPreviewMode = false;
+
+            ArtifactPartsGrid.SelectionMode = DataGridSelectionMode.Extended;
+            ArtifactPartsGrid.SelectionUnit = DataGridSelectionUnit.FullRow;
+
+            ArtifactPartsGrid.SelectedItems.Clear();
+
+            SetArtifactPartsSelectionColor("#22C55E"); // green
+        }
+
+
+        //private async void ArtifactPartsGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        //{
+
+        //    var selected = ArtifactPartsGrid.SelectedItem;
+
+        //    System.Diagnostics.Debug.WriteLine(
+        //        $"ArtifactPartsGrid selected type: {selected?.GetType().FullName ?? "null"}");
+
+        //    if (selected == null)
+        //        return;
+
+
+        //    if (ArtifactPartsGrid.SelectedItem is not EcoContentDto part)
+        //        return;
+
+        //    _pendingPreviewPart = part;
+
+        //    if (!_isPreviewMode)
+        //        return;
+
+        //    await LoadPreviewForPartAsync(part);
+        //}
+        //private async void ArtifactEcoComboBox_SelectionChanged(
+        //    object sender,
+        //    SelectionChangedEventArgs e)
+        //{
+        //    if (ArtifactEcoComboBox.SelectedItem is not EcoDto eco)
+        //        return;
+
+        //    System.Diagnostics.Debug.WriteLine($"ECO selected: {eco.EcoId}");
+
+        //    // Clear current grid + preview state
+        //    EcoParts.Clear();
+        //    _pendingPreviewPart = null;
+
+        //    // Optional: clear preview viewer
+        //    EDrawingsPreview.OpenFile(""); // or CloseFile() if you added it
+
+        //    try
+        //    {
+        //        var parts = await _apiClient.GetEcoContentsAsync(eco.EcoId);
+
+        //        foreach (var p in parts)
+        //        {
+        //            EcoParts.Add(new ());
+        //        }
+
+        //        ArtifactSelectedCountTextBlock.Text = $"{EcoParts.Count} parts";
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"Error loading ECO parts: {ex.Message}");
+        //    }
+        //}
+
+        private async void ArtifactEcoComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            EcoParts.Clear();
+
+            _selectedEco = ArtifactEcoComboBox.SelectedItem as EcoDto;
+            if (_selectedEco == null)
+                return;
+
+            var selectedProject = ArtifactProjectComboBox.SelectedItem as ProjectDto;
+            if (selectedProject == null)
+                return;
+
+            ArtifactEcoStateTextBox.Text = _selectedEco.EcoState ?? string.Empty;
+
+            var rows = await _apiClient.GetArtifactEcoContentsAsync(_selectedEco.EcoId);
+
+            foreach (var row in rows)
+            {
+                EcoParts.Add(new ArtifactPartRowViewModel
+                {
+                    IsSelected = false,
+
+                    EcoId = _selectedEco.EcoId,
+                    PartId = row.PartId,
+                    RevisionId = row.RevisionId,
+
+                    ProjectCode = selectedProject.ProjectCode,
+                    ProjectName = selectedProject.ProjectName,
+
+                    PartNumber = row.DisplayPartNumber,
+                    Revision = row.RevisionCode.ToString(),
+                    Description = row.Description ?? string.Empty,
+                    RevisionState = row.RevisionState ?? string.Empty,
+                    DocumentType = row.DocumentType ?? string.Empty,
+                    DisplayCompositeCode = row.DisplayCompositeCode
+                });
+            }
+
+            await LoadArtifactHistoryAsync(_selectedEco.EcoId);
+        }
+
+
+
+
+
+
+        private async void ProcessTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var enteringPreview = ProcessTabs.SelectedItem == PreviewTab;
+
+            if (enteringPreview)
+            {
+                EnterPreviewMode();
+
+                if (_pendingPreviewPart is not null)
+                    await LoadPreviewForPartAsync(_pendingPreviewPart);
+            }
+            else
+            {
+                ExitPreviewMode();
+            }
+        }
 
 
 

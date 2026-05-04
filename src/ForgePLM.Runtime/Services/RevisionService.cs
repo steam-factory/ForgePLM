@@ -25,6 +25,7 @@ namespace ForgePLM.Runtime.Services
             r.part_description,
             p.category_code,
             p.part_number_int,
+            p.document_type,
             e.eco_number
         FROM revisions r
         INNER JOIN part_numbers p

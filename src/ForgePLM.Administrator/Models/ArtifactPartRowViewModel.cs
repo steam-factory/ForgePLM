@@ -18,5 +18,7 @@ namespace ForgePLM.Administrator.Views
         public string FilePath { get; set; } = string.Empty;
 
         public string SourceFilePath { get; set; } = string.Empty;
+        public string ProjectCode { get; set; } = "";
+        public string ProjectName { get; set; } = "";
     }
 }

@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="eDrawings.Interop.EModelViewControl">
+      <HintPath>C:\Program Files\SOLIDWORKS Corp\eDrawings\eDrawings.Interop.EModelViewControl.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

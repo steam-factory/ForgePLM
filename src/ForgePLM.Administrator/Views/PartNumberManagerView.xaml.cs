@@ -12,7 +12,7 @@ namespace ForgePLM.Administrator.Views
 {
     public partial class PartNumberManagerView : UserControl, INavigationView
     {
-        private readonly ForgePlmAdminApiClient _apiClient = new();
+        private readonly ForgePlmAdminApiClient _apiClient;
         private readonly ObservableCollection<PartNumberManagerItemDto> _rows = new();
 
         private List<PartNumberManagerItemDto> _allRows = new();
@@ -20,7 +20,7 @@ namespace ForgePLM.Administrator.Views
 
         public string ViewTitle => "Part Number Manager";
 
-        public PartNumberManagerView()
+        public PartNumberManagerView(  )
         {
             InitializeComponent();
 

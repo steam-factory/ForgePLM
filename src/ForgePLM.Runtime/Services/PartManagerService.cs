@@ -25,6 +25,7 @@ namespace ForgePLM.Runtime.Services
             const string sql = @"
 SELECT
     p.part_id,
+    p.document_type,
     r.revision_id,
     CONCAT(p.category_code, '-', RIGHT('0000000' + CAST(p.part_number_int AS varchar(7)), 7)) AS part_number,
     r.revision_code,
@@ -104,6 +105,7 @@ WHERE r.revision_id = @revisionId
 
 SELECT
     p.part_id,
+    p.document_type,
     r.revision_id,
     CONCAT(p.category_code, '-', RIGHT('0000000' + CAST(p.part_number_int AS varchar(7)), 7)) AS part_number,
     r.revision_code,

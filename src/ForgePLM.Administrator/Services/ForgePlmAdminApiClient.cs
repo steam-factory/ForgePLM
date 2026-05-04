@@ -22,12 +22,9 @@ namespace ForgePLM.Administrator.Services
     {
         private readonly HttpClient _httpClient;
 
-        public ForgePlmAdminApiClient()
+        public ForgePlmAdminApiClient(HttpClient httpClient)
         {
-            _httpClient = new HttpClient
-            {
-                BaseAddress = new Uri("http://127.0.0.1:5269")
-            };
+            _httpClient = httpClient;
         }
 
         public async Task<string> GetHealthAsync()
@@ -309,6 +306,20 @@ namespace ForgePLM.Administrator.Services
                     ?? new List<ArtifactBatchDto>();
         }
 
+        public async Task<IReadOnlyList<ArtifactDto>> GetArtifactsByRevisionAsync(
+       int revisionId,
+       CancellationToken cancellationToken = default)
+        {
+            using var response = await _httpClient.GetAsync(
+                $"/api/artifact-batches/artifacts/by-revision/{revisionId}",
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<IReadOnlyList<ArtifactDto>>(
+                cancellationToken: cancellationToken)
+                ?? new List<ArtifactDto>();
+        }
 
 
         private sealed record CustomerEnvelope(
