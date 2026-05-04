@@ -5,6 +5,12 @@ ForgePLM is an opinionated PLM workflow for SolidWorks-based teams.
 
 It is designed around ECO-centered change control, disciplined part numbering, revision control, and a clean separation between engineering work and production release records.
 
+## 🎬 What is ForgePLM?
+
+[Forge PLM Intro](https://youtu.be/pqtd2FHGQtQ?si=CmAy79ZjmNEAOQ3J)
+
+[Forge PLM Demo - Master Model naming](https://youtu.be/9kbPz9MpSys?si=yV3-C8zhLzGjuG07)
+
 ## Current Status
 
 ForgePLM is in early public-preview preparation. The current system includes:
