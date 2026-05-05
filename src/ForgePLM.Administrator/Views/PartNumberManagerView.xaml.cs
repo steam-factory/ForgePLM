@@ -1,4 +1,5 @@
 ﻿using ForgePLM.Administrator.Services;
+using ForgePLM.Contracts.Customers;
 using ForgePLM.Contracts.Parts;
 using ForgePLM.Contracts.Requests;
 using System;
@@ -15,16 +16,22 @@ namespace ForgePLM.Administrator.Views
         private readonly ForgePlmAdminApiClient _apiClient;
         private readonly ObservableCollection<PartNumberManagerItemDto> _rows = new();
 
+        public ObservableCollection<PartNumberManagerItemDto> Rows => _rows;
+
+
+
         private List<PartNumberManagerItemDto> _allRows = new();
         private readonly HashSet<int> _dirtyRevisionIds = new();
 
         public string ViewTitle => "Part Number Manager";
 
-        public PartNumberManagerView(  )
+        public PartNumberManagerView(ForgePlmAdminApiClient apiClient)
         {
             InitializeComponent();
 
-            PartNumbersDataGrid.ItemsSource = _rows;
+            _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+
+            DataContext = this;
 
             Loaded += PartNumberManagerView_Loaded;
             RefreshButton.Click += RefreshButton_Click;

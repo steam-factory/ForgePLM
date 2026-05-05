@@ -1,15 +1,17 @@
-﻿using ForgePLM.Contracts.Customers;
+﻿using ForgePLM.Contracts.Artifacts;
+using ForgePLM.Contracts.Customers;
 using ForgePLM.Contracts.Eco;
 using ForgePLM.Contracts.PartCategories;
 using ForgePLM.Contracts.Parts;
 using ForgePLM.Contracts.Projects;
 using ForgePLM.Contracts.Requests;
 using ForgePLM.Contracts.Revisions;
+using Newtonsoft.Json;
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
-using ForgePLM.Contracts.Artifacts;
-using Newtonsoft.Json;
+using Json = System.Text.Json.JsonSerializer;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows;
@@ -192,8 +194,8 @@ namespace ForgePLM.Administrator.Services
         }
 
         public async Task<PartRevisionItemDto> CreatePartUnderEcoAsync(
-            CreatePartRequest request,
-            CancellationToken cancellationToken = default)
+    CreatePartRequest request,
+    CancellationToken cancellationToken = default)
         {
             using var response = await _httpClient.PostAsJsonAsync(
                 "/api/parts",
@@ -205,10 +207,15 @@ namespace ForgePLM.Administrator.Services
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException($"HTTP {(int)response.StatusCode}: {raw}");
 
-            var envelope = await response.Content.ReadFromJsonAsync<CreatePartEnvelope>(
-                cancellationToken: cancellationToken);
+            var envelope = Json.Deserialize<CreatePartEnvelope>(
+                raw,
+                new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
 
-            return envelope?.Data ?? throw new InvalidOperationException("Part API returned no body.");
+            return envelope?.Data
+                ?? throw new InvalidOperationException($"Part API returned no data. Raw: {raw}");
         }
 
         public async Task<IReadOnlyList<PartRevisionItemDto>> GetEcoContentsAsync(

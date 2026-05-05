@@ -158,6 +158,7 @@
                 CornerRadius="8"
                 Padding="10">
             <DataGrid x:Name="PartNumbersDataGrid"
+                      ItemsSource="{Binding Rows}"
                       AutoGenerateColumns="False"
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"

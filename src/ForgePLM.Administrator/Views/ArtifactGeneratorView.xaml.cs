@@ -21,7 +21,6 @@ namespace ForgePLM.Administrator.Views
     public partial class ArtifactGeneratorView : UserControl, INavigationView
     {
         public string ViewTitle => "Artifact Generator";
-        private readonly ForgePlmAdminApiClient _client;
         private ArtifactBatchDto? _lastBatch;
         private ArtifactBatchHistoryRowViewModel? _selectedHistoryBatch;
         private readonly ForgePlmAdminApiClient _apiClient;
