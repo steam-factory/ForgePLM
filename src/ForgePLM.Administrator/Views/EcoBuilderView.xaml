@@ -43,6 +43,7 @@
                                 <TextBlock Text="Customer"
                                Style="{StaticResource FieldLabelTextStyle}"/>                                
                                 <ComboBox x:Name="EcoCustomerComboBox"
+                                      ItemsSource="{Binding Customers}"
                                       Margin="0,4,0,0"
                                       SelectionChanged="EcoCustomerComboBox_SelectionChanged">
                                         <ComboBox.ItemTemplate>
@@ -78,6 +79,7 @@
                                 <ComboBox x:Name="EcoProjectComboBox"
                                       Margin="0,4,0,0"
                                       HorizontalContentAlignment="Stretch"
+                                        ItemsSource="{Binding Projects}"
                                       SelectionChanged="EcoProjectComboBox_SelectionChanged">
                                 <ComboBox.ItemTemplate>
                                         <DataTemplate>
@@ -114,6 +116,7 @@
                                 </Grid.RowDefinitions>
 
                         <ListBox x:Name="ProjectPartsListBox"
+                             ItemsSource="{Binding ProjectParts}"
                              SelectionMode="Extended"
                              SelectionChanged="ProjectPartsListBox_SelectionChanged">
                             <ListBox.ItemContainerStyle>
@@ -205,6 +208,7 @@
                                Style="{StaticResource FieldLabelTextStyle}"/>
 
                         <ComboBox x:Name="EcoComboBox"
+                              ItemsSource="{Binding Ecos}"
                               Margin="0,4,0,0"
                               SelectionChanged="EcoComboBox_SelectionChanged"
                               HorizontalContentAlignment="Stretch">
@@ -283,6 +287,7 @@
                                 </Grid.RowDefinitions>
 
                         <ListBox x:Name="EcoContentsListBox"
+                                ItemsSource="{Binding EcoContents}"
                                 SelectionMode="Extended">
                             <ListBox.ItemTemplate >
                                 <DataTemplate>
