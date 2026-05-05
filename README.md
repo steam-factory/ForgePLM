@@ -11,6 +11,8 @@ It is designed around ECO-centered change control, disciplined part numbering, r
 
 [Forge PLM Demo - Master Model naming](https://youtu.be/9kbPz9MpSys?si=yV3-C8zhLzGjuG07)
 
+[Forge PLM Demo - eDrawings Viewer](https://youtu.be/jMKlIFz536E)
+
 ## Current Status
 
 ForgePLM is in early public-preview preparation. The current system includes:
