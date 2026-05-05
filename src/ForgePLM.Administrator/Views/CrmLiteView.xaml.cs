@@ -1,6 +1,9 @@
 ﻿using ForgePLM.Administrator.Services;
 using ForgePLM.Contracts.Customers;
+using ForgePLM.Contracts.Eco;
+using ForgePLM.Contracts.Parts;
 using ForgePLM.Contracts.Projects;
+using ForgePLM.Contracts.Revisions;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -24,6 +27,9 @@ namespace ForgePLM.Administrator.Views
         private readonly ObservableCollection<ProjectDto> _projects = new();
         private ProjectDto? _selectedProject;
 
+        public ObservableCollection<CustomerDto> Customers => _customers;
+        public ObservableCollection<ProjectDto> Projects => _projects;
+
 
 
 
@@ -32,6 +38,8 @@ namespace ForgePLM.Administrator.Views
             InitializeComponent();
 
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+
+            DataContext = this;
 
             Loaded += CrmLiteView_Loaded;
         }

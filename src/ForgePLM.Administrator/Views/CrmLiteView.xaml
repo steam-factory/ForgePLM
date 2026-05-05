@@ -52,6 +52,7 @@
 
                         <ListBox Grid.Column="0"
                              x:Name="CustomersListBox"
+                             ItemsSource="{Binding Customers}"
                              DisplayMemberPath="CustomerName"
                              SelectionChanged="CustomersListBox_SelectionChanged"/>
 
@@ -144,6 +145,7 @@
                         </Grid.ColumnDefinitions>
 
                         <ListBox x:Name="ProjectsListBox"
+                            ItemsSource="{Binding Projects}"
                             Grid.Column="0"
                             SelectionChanged="ProjectsListBox_SelectionChanged">
                                 <ListBox.ItemTemplate>

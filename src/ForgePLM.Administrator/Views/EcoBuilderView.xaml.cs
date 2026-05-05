@@ -25,6 +25,12 @@ namespace ForgePLM.Administrator.Views
         private readonly List<PartCategoryDto> _partCategories = new();
         public ObservableCollection<ArtifactPartRowViewModel> EcoParts { get; }= new ObservableCollection<ArtifactPartRowViewModel>();
 
+        public ObservableCollection<CustomerDto> Customers => _customers;
+        public ObservableCollection<ProjectDto> Projects => _projects;
+        public ObservableCollection<EcoDto> Ecos => _ecos;
+        public ObservableCollection<PartRevisionItemDto> EcoContents => _ecoContents;
+        public ObservableCollection<ProjectPartCurrentDto> ProjectParts => _projectParts;
+
         private EcoDto? _selectedEco;
 
         private CustomerDto? _selectedCustomer;
@@ -38,6 +44,8 @@ namespace ForgePLM.Administrator.Views
             InitializeComponent();
 
             _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+
+            DataContext = this;
 
             Loaded += EcoBuilderView_Loaded;
         }
@@ -65,7 +73,6 @@ namespace ForgePLM.Administrator.Views
                 _projects.Clear();
 
 
-                EcoCustomerComboBox.ItemsSource = _customers;
             }
             catch (Exception ex)
             {
@@ -416,6 +423,7 @@ namespace ForgePLM.Administrator.Views
 
             try
             {
+                
                 var request = new CreatePartRequest(
                     ProjectCode: _selectedProject.ProjectCode,
                     EcoId: _selectedEco.EcoId, // ✅ FIXED
