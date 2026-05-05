@@ -20,9 +20,9 @@ namespace ForgePLM.Administrator.Views
         private readonly ObservableCollection<CustomerDto> _customers = new();
         private readonly ObservableCollection<ProjectDto> _projects = new();
         private readonly ObservableCollection<EcoDto> _ecos = new();
-        private readonly List<PartCategoryDto> _partCategories = new();
         private readonly ObservableCollection<PartRevisionItemDto> _ecoContents = new();
         private readonly ObservableCollection<ProjectPartCurrentDto> _projectParts = new();
+        private readonly List<PartCategoryDto> _partCategories = new();
         public ObservableCollection<ArtifactPartRowViewModel> EcoParts { get; }= new ObservableCollection<ArtifactPartRowViewModel>();
 
         private EcoDto? _selectedEco;
@@ -32,18 +32,12 @@ namespace ForgePLM.Administrator.Views
 
         public string ViewTitle => "ECO Builder";
 
-        public EcoBuilderView()
+
+        public EcoBuilderView(ForgePlmAdminApiClient apiClient)
         {
             InitializeComponent();
 
-            EcoCustomerComboBox.ItemsSource = _customers;
-            EcoProjectComboBox.ItemsSource = _projects;
-            EcoComboBox.ItemsSource = _ecos;
-            NewEcoButton.IsEnabled = false;
-            AddNewPartButton.IsEnabled = false;
-            EcoContentsListBox.ItemsSource = _ecoContents;
-            ProjectPartsListBox.ItemsSource = _projectParts;
-            ProjectPartsListBox.IsEnabled = false;
+            _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
 
             Loaded += EcoBuilderView_Loaded;
         }
@@ -69,6 +63,9 @@ namespace ForgePLM.Administrator.Views
                 EcoCustomerComboBox.SelectedItem = null;
                 EcoProjectComboBox.SelectedItem = null;
                 _projects.Clear();
+
+
+                EcoCustomerComboBox.ItemsSource = _customers;
             }
             catch (Exception ex)
             {

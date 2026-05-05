@@ -24,15 +24,16 @@ namespace ForgePLM.Administrator.Views
         private readonly ObservableCollection<ProjectDto> _projects = new();
         private ProjectDto? _selectedProject;
 
-        
 
-        public CrmLiteView()
+
+
+        public CrmLiteView(ForgePlmAdminApiClient apiClient)
         {
             InitializeComponent();
-            Loaded += CrmLiteView_Loaded;
 
-            ProjectsListBox.ItemsSource = _projects;
-            CustomersListBox.ItemsSource = _customers;
+            _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
+
+            Loaded += CrmLiteView_Loaded;
         }
         private async Task LoadCustomersAsync()
         {

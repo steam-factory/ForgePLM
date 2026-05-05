@@ -75,17 +75,20 @@ namespace ForgePLM.Administrator
 
         private void DashboardButton_Click(object sender, RoutedEventArgs e)
         {
+            
             ShowView(new DashboardView());
         }
 
         private void CrmLiteButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowView(new CrmLiteView());
+            var view = new CrmLiteView(_apiClient);
+            ShowView(view);
         }
 
         private void EcoBuilderButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowView(new EcoBuilderView());
+            var view = new EcoBuilderView(_apiClient);
+            ShowView(view);
         }
 
         private void PartNumberManagerButton_Click(object sender, RoutedEventArgs e)
