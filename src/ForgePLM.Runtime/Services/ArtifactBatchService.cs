@@ -109,6 +109,28 @@ public class ArtifactBatchService : IArtifactBatchService
                     ? string.Empty
                     : output.Variant.Trim();
 
+                // STL is only valid for PART documents.
+                // Skip assemblies/drawings instead of failing the whole batch.
+                if (outputType == "STL" &&
+                    !string.Equals(item.DocumentType, "PART", StringComparison.OrdinalIgnoreCase))
+                {
+                    completedSteps++;
+
+                    if (trackProgress)
+                    {
+                        _jobStore.Update(
+                            jobId,
+                            "processing",
+                            completedSteps,
+                            totalSteps,
+                            $"Skipped STL for {item.DisplayCompositeCode} ({item.DocumentType}).");
+
+                        await Task.Delay(2000, cancellationToken);
+                    }
+
+                    continue;
+                }
+
                 if (trackProgress)
                 {
                     _jobStore.Update(
@@ -138,6 +160,19 @@ public class ArtifactBatchService : IArtifactBatchService
 
                 artifacts.Add(artifact);
                 completedSteps++;
+
+                if (trackProgress)
+                {
+                    _jobStore.Update(
+                        jobId,
+                        "processing",
+                        completedSteps,
+                        totalSteps,
+                        $"Completed {item.DisplayCompositeCode} {outputType} {variant}.");
+                }
+
+                // 👇 small UX delay
+                await Task.Delay(1000, cancellationToken);
             }
         }
 
@@ -304,8 +339,11 @@ public class ArtifactBatchService : IArtifactBatchService
         Directory.CreateDirectory(outputFolder);
 
         string safeDescription = SanitizeFileName(item.Description);
-        string outputFileName =
-            $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT.step";
+        string outputFileName = BuildArtifactFileName(
+            item,
+            batchHeader,
+            "step",
+            isDraft: true);
 
         string outputPath = Path.Combine(outputFolder, outputFileName);
         string outputRootPath = Path.Combine(@"E:\ForgePLM\production", batchHeader.BatchCode);
@@ -359,8 +397,13 @@ public class ArtifactBatchService : IArtifactBatchService
         Directory.CreateDirectory(outputFolder);
 
         string safeDescription = SanitizeFileName(item.Description);
-        string outputFileName =
-            $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}-DRAFT.stl";
+
+        string outputFileName = BuildArtifactFileName(
+                item,
+                batchHeader,
+                "stl",
+                isDraft: true);
+
 
         string outputPath = Path.Combine(outputFolder, outputFileName);
 
@@ -866,7 +909,20 @@ public class ArtifactBatchService : IArtifactBatchService
         return artifacts;
     }
 
+    private static string BuildArtifactFileName(
+    ArtifactWorkItem item,
+    ArtifactBatchHeader batchHeader,
+    string extension,
+    bool isDraft)
+    {
+        string safeDescription = SanitizeFileName(item.Description);
 
+        string draftSuffix = isDraft ? "-DRAFT" : string.Empty;
+
+        return $"{item.DisplayCompositeCode}.{batchHeader.BatchCode} {safeDescription}{draftSuffix}.{extension.TrimStart('.')}";
+    }
+
+  
 
 
     private sealed class ArtifactBatchHeader
