@@ -45,6 +45,8 @@ namespace ForgePLM.Runtime.Services
 
                 int docType = GetDocumentType(sourceFilePath);
 
+                bool wasAlreadyOpen = swApp.GetOpenDocumentByName(sourceFilePath) != null;
+
                 SwModelDoc model = swApp.OpenDoc6(
                     sourceFilePath,
                     docType,
@@ -53,9 +55,32 @@ namespace ForgePLM.Runtime.Services
                     ref errors,
                     ref warnings);
 
-                if (model == null)
-                    throw new InvalidOperationException(
-                        $"SolidWorks failed to open source file.\n\nFile: {sourceFilePath}\nErrors: {errors}\nWarnings: {warnings}");
+                    if (model == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"SolidWorks failed to open source file.\n\n" +
+                            $"File: {sourceFilePath}\n" +
+                            $"Errors: {errors}\n" +
+                            $"Warnings: {warnings}");
+                    }
+
+                    int activationErrors = 0;
+
+                    SwModelDoc? activeModel = swApp.ActivateDoc3(
+                        model.GetTitle(),
+                        false,
+                        (int)SwConst.swRebuildOnActivation_e.swUserDecision,
+                        ref activationErrors);
+
+                    if (activeModel == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"SolidWorks failed to activate the source document.\n\n" +
+                            $"File: {sourceFilePath}\n" +
+                            $"Activation errors: {activationErrors}");
+                    }
+
+                    model = activeModel;
 
                 try
                 {
@@ -64,7 +89,23 @@ namespace ForgePLM.Runtime.Services
                     int saveErrors = 0;
                     int saveWarnings = 0;
 
-                     bool success = model.Extension.SaveAs(
+                    SwModelDoc? verifiedActiveModel = swApp.ActiveDoc as SwModelDoc;
+
+                    if (verifiedActiveModel == null ||
+                        !string.Equals(
+                            verifiedActiveModel.GetPathName(),
+                            sourceFilePath,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException(
+                            $"SolidWorks activated the wrong document.\n\n" +
+                            $"Expected: {sourceFilePath}\n" +
+                            $"Active: {verifiedActiveModel?.GetPathName() ?? "(none)"}");
+                    }
+
+                    model = verifiedActiveModel;
+
+                    bool success = model.Extension.SaveAs(
                         outputPath,
                         (int)SwConst.swSaveAsVersion_e.swSaveAsCurrentVersion,
                         saveOptions,
@@ -80,7 +121,9 @@ namespace ForgePLM.Runtime.Services
                 }
                 finally
                 {
-                    swApp.CloseDoc(model.GetTitle());
+                    if (!wasAlreadyOpen)
+                        swApp.CloseDoc(model.GetTitle());
+
                     swApp.CommandInProgress = false;
                 }
             });
