@@ -36,6 +36,8 @@ namespace ForgePLM.Runtime.Services
 
                 SwApp swApp = GetOrStartSolidWorks();
 
+                EnsureSolidWorksHasNoOpenDocuments(swApp);
+
                 swApp.Visible = false;
                 swApp.UserControl = false;
                 swApp.CommandInProgress = true;
@@ -45,7 +47,6 @@ namespace ForgePLM.Runtime.Services
 
                 int docType = GetDocumentType(sourceFilePath);
 
-                bool wasAlreadyOpen = swApp.GetOpenDocumentByName(sourceFilePath) != null;
 
                 SwModelDoc model = swApp.OpenDoc6(
                     sourceFilePath,
@@ -121,8 +122,7 @@ namespace ForgePLM.Runtime.Services
                 }
                 finally
                 {
-                    if (!wasAlreadyOpen)
-                        swApp.CloseDoc(model.GetTitle());
+                    swApp.CloseDoc(model.GetTitle());
 
                     swApp.CommandInProgress = false;
                 }
@@ -319,6 +319,29 @@ namespace ForgePLM.Runtime.Services
             throw new InvalidOperationException("Unsupported SolidWorks document type: " + ext);
         }
 
-        
+        private static void EnsureSolidWorksHasNoOpenDocuments(SwApp swApp)
+        {
+            object[]? openDocs = swApp.GetDocuments() as object[];
+
+            if (openDocs == null || openDocs.Length == 0)
+                return;
+
+            var titles = openDocs
+                .OfType<SwModelDoc>()
+                .Select(x => x.GetTitle())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToList();
+
+            string openDocumentList = titles.Count > 0
+                ? string.Join(Environment.NewLine, titles.Select(x => $"• {x}"))
+                : "One or more SolidWorks documents are open.";
+
+            throw new InvalidOperationException(
+                "Artifact generation requires all SolidWorks documents to be closed.\n\n" +
+                "Close the following documents and try again:\n\n" +
+                openDocumentList);
+        }
+
+
     }
 }
